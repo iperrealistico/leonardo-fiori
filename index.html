@@ -30,7 +30,7 @@
             --font-family: 'Crimson Text', serif; /* Google Font name */
             --font-size: 18px;
             --line-height: 1.6;
-            --footer-text: '© 2025 Leonardo Fiori. All rights reserved. Test.'; /* Edit footer text */
+            --footer-text: '© 2025 Leonardo Fiori. All rights reserved. Test 2.'; /* Edit footer text */
             --site-title: 'Leonardo Fiori'; /* Edit site title that appears in navigation */
             --nav-height: 60px;
             --transition-duration: 0.5s;
@@ -726,7 +726,7 @@
             loadPhotosOptimized(projectName, contentWrapper, textPosition === 'above' && hasText);
         }
         
-        // Optimized photo loading that displays images as they're found
+        // Optimized photo loading with direct image loading
         async function loadPhotosOptimized(projectName, contentWrapper, insertAtEnd) {
             // First try to load photos.txt for custom names
             const photosResponse = await silentFetch(`${projectName}/photos.txt`);
@@ -739,17 +739,16 @@
                 // Load custom photos
                 for (let i = 0; i < photoFiles.length; i++) {
                     const photoPath = `${projectName}/${photoFiles[i]}`;
-                    const response = await silentFetch(photoPath, { method: 'HEAD' });
-                    if (response.ok) {
-                        if (i === 0) {
-                            // Create gallery for first photo immediately
+                    const success = await tryLoadImage(photoPath);
+                    if (success) {
+                        if (CONFIG.photos.length === 0) {
                             createGalleryElement(contentWrapper, insertAtEnd);
                         }
-                        addPhotoToGallery(photoPath, i === 0);
+                        addPhotoToGallery(photoPath, CONFIG.photos.length === 0);
                     }
                 }
             } else {
-                // Use parallel loading for standard naming pattern
+                // Use optimized loading for standard naming pattern
                 await loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd);
             }
             
@@ -757,58 +756,51 @@
             updateNavigationArrows();
         }
         
+        // Try to load an image using Image object
+        async function tryLoadImage(src) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = src;
+            });
+        }
+        
         // Optimized loading of standard-named photos
         async function loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd) {
             const extensions = ['jpg', 'jpeg', 'png', 'webp'];
-            const batchSize = 10; // Check 10 images at a time
             let foundAny = false;
             let consecutiveNotFound = 0;
-            const maxConsecutiveNotFound = 5;
+            const maxConsecutiveNotFound = 3; // Reduced from 5
+            const maxImages = 50; // Reduced from 100 to limit search
             
-            for (let startIndex = 1; startIndex <= 100 && consecutiveNotFound < maxConsecutiveNotFound; startIndex += batchSize) {
-                const promises = [];
+            // Try loading images sequentially
+            for (let i = 1; i <= maxImages && consecutiveNotFound < maxConsecutiveNotFound; i++) {
+                let found = false;
                 
-                // Create batch of promises
-                for (let i = startIndex; i < startIndex + batchSize && i <= 100; i++) {
-                    promises.push(checkImageExists(projectName, i, extensions));
-                }
-                
-                // Wait for batch to complete
-                const results = await Promise.all(promises);
-                
-                // Process results
-                let foundInBatch = false;
-                for (const result of results) {
-                    if (result) {
-                        foundInBatch = true;
+                // Try each extension
+                for (const ext of extensions) {
+                    const photoPath = `${projectName}/img/img${i}.${ext}`;
+                    const success = await tryLoadImage(photoPath);
+                    
+                    if (success) {
+                        found = true;
                         consecutiveNotFound = 0;
                         
                         if (!foundAny) {
-                            // Create gallery for first photo
                             createGalleryElement(contentWrapper, insertAtEnd);
                             foundAny = true;
                         }
                         
-                        addPhotoToGallery(result, CONFIG.photos.length === 0);
+                        addPhotoToGallery(photoPath, CONFIG.photos.length === 0);
+                        break; // Found image with this extension, move to next index
                     }
                 }
                 
-                if (!foundInBatch) {
+                if (!found) {
                     consecutiveNotFound++;
                 }
             }
-        }
-        
-        // Check if an image exists with any of the given extensions
-        async function checkImageExists(projectName, index, extensions) {
-            for (const ext of extensions) {
-                const photoPath = `${projectName}/img/img${index}.${ext}`;
-                const response = await silentFetch(photoPath, { method: 'HEAD' });
-                if (response.ok) {
-                    return photoPath;
-                }
-            }
-            return null;
         }
         
         // Create the gallery element structure
@@ -824,7 +816,7 @@
             
             const galleryDiv = document.createElement('div');
             galleryDiv.innerHTML = galleryHTML;
-            CONFIG.galleryElement = galleryDiv.firstChild;
+            CONFIG.galleryElement = galleryDiv.firstElementChild;
             
             if (insertAtEnd) {
                 contentWrapper.appendChild(CONFIG.galleryElement);
