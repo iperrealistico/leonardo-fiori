@@ -30,11 +30,11 @@
             --font-family: 'Crimson Text', serif; /* Google Font name */
             --font-size: 18px;
             --line-height: 1.6;
-            --footer-text: '© 2025 Leonardo Fiori. All rights reserved.'; /* Edit footer text */
-            --site-title: 'Leonardo Fiori'; /* Edit site title that appears in navigation */
+            --footer-text: '© 2024 John Doe Photography. All rights reserved.'; /* Edit footer text */
+            --site-title: 'John Doe'; /* Edit site title that appears in navigation */
             --nav-height: 60px;
             --transition-duration: 0.5s;
-            --text-position: 'above'; /* 'above' or 'below' - position of text relative to images */
+            --text-position: 'below'; /* 'above' or 'below' - position of text relative to images */
             --external-links-new-tab: true; /* true or false - open external links in new tab */
         }
     </style>
@@ -472,6 +472,16 @@
             mobileMenuOpen: false
         };
         
+        // Silent fetch that doesn't log errors
+        async function silentFetch(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                return response;
+            } catch (error) {
+                return { ok: false };
+            }
+        }
+        
         // Initialize the application
         async function init() {
             try {
@@ -510,7 +520,7 @@
         async function loadProjects() {
             try {
                 // Fetch the projects.txt file
-                const response = await fetch('projects.txt');
+                const response = await silentFetch('projects.txt');
                 if (!response.ok) {
                     throw new Error('projects.txt not found');
                 }
@@ -525,10 +535,10 @@
                 for (const folder of projectFolders) {
                     try {
                         // Check if it's an external link project
-                        const linkResponse = await fetch(`${folder}/link.txt`);
+                        const linkResponse = await silentFetch(`${folder}/link.txt`);
                         if (linkResponse.ok) {
                             const linkUrl = (await linkResponse.text()).trim();
-                            const titleResponse = await fetch(`${folder}/title.txt`);
+                            const titleResponse = await silentFetch(`${folder}/title.txt`);
                             const title = titleResponse.ok ? 
                                 (await titleResponse.text()).trim().split('\n')[0] : 
                                 folder.charAt(0).toUpperCase() + folder.slice(1);
@@ -541,7 +551,7 @@
                             });
                         } else {
                             // Regular project
-                            const titleResponse = await fetch(`${folder}/title.txt`);
+                            const titleResponse = await silentFetch(`${folder}/title.txt`);
                             if (titleResponse.ok) {
                                 const titleText = await titleResponse.text();
                                 const title = titleText.trim().split('\n')[0];
@@ -679,7 +689,7 @@
             // Load and display text content first
             let hasText = false;
             try {
-                const textResponse = await fetch(`${projectName}/text.txt`);
+                const textResponse = await silentFetch(`${projectName}/text.txt`);
                 if (textResponse.ok) {
                     const textContent = await textResponse.text();
                     if (textContent.trim()) {
@@ -749,7 +759,7 @@
             
             try {
                 // First try to load photos.txt for custom names
-                const photosResponse = await fetch(`${projectName}/photos.txt`);
+                const photosResponse = await silentFetch(`${projectName}/photos.txt`);
                 if (photosResponse.ok) {
                     const photosText = await photosResponse.text();
                     const photoFiles = photosText.split('\n')
@@ -760,7 +770,7 @@
                     for (const photoFile of photoFiles) {
                         try {
                             const photoPath = `${projectName}/${photoFile}`;
-                            const response = await fetch(photoPath, { method: 'HEAD' });
+                            const response = await silentFetch(photoPath, { method: 'HEAD' });
                             if (response.ok) {
                                 CONFIG.photos.push(photoPath);
                             }
@@ -771,26 +781,26 @@
                 } else {
                     // Fallback: try standard naming pattern imgX.jpg
                     let photoIndex = 1;
-                    while (photoIndex <= 50) {
+                    let consecutiveFailures = 0;
+                    const maxConsecutiveFailures = 5; // Stop after 5 consecutive missing photos
+                    
+                    while (photoIndex <= 100 && consecutiveFailures < maxConsecutiveFailures) {
                         let found = false;
                         const extensions = ['jpg', 'jpeg', 'png', 'webp'];
                         
                         for (const ext of extensions) {
                             const photoPath = `${projectName}/img${photoIndex}.${ext}`;
-                            try {
-                                const response = await fetch(photoPath, { method: 'HEAD' });
-                                if (response.ok) {
-                                    CONFIG.photos.push(photoPath);
-                                    found = true;
-                                    break;
-                                }
-                            } catch (e) {
-                                // Continue searching
+                            const response = await silentFetch(photoPath, { method: 'HEAD' });
+                            if (response.ok) {
+                                CONFIG.photos.push(photoPath);
+                                found = true;
+                                consecutiveFailures = 0; // Reset counter when we find a photo
+                                break;
                             }
                         }
                         
-                        if (!found && photoIndex > 1) {
-                            break;
+                        if (!found) {
+                            consecutiveFailures++;
                         }
                         
                         photoIndex++;
