@@ -58,50 +58,45 @@
             visibility: hidden;
         }
         
-        /* Modern round preloader */
+        /* Modern round preloader with advanced animation */
         .preloader-container {
             position: relative;
-            width: 80px;
-            height: 80px;
+            width: 60px;
+            height: 60px;
         }
         
-        /* Outer ring */
+        /* Multiple rotating rings for depth */
         .preloader-ring {
             position: absolute;
-            width: 80px;
-            height: 80px;
+            inset: 0;
             border-radius: 50%;
-            border: 3px solid rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(0, 0, 0, 0.05);
+            animation: preloader-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
         
-        /* Animated ring */
-        .preloader-ring::after {
-            content: '';
+        .preloader-ring:nth-child(1) {
+            animation-delay: -0.45s;
+        }
+        
+        .preloader-ring:nth-child(2) {
+            animation-delay: -0.3s;
+        }
+        
+        .preloader-ring:nth-child(3) {
+            animation-delay: -0.15s;
+        }
+        
+        /* Animated arc */
+        .preloader-arc {
             position: absolute;
-            top: -3px;
-            left: -3px;
-            width: 80px;
-            height: 80px;
+            inset: -1px;
             border-radius: 50%;
-            border: 3px solid transparent;
+            border: 2px solid transparent;
             border-top-color: var(--text-color);
-            animation: preloader-spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            animation: preloader-rotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
         }
         
-        /* Center dot */
-        .preloader-dot {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: var(--text-color);
-            transform: translate(-50%, -50%);
-            animation: preloader-pulse 1s ease-in-out infinite;
-        }
-        
-        @keyframes preloader-spin {
+        @keyframes preloader-rotate {
             0% {
                 transform: rotate(0deg);
             }
@@ -112,12 +107,12 @@
         
         @keyframes preloader-pulse {
             0%, 100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 1;
+                transform: scale(0.8);
+                opacity: 0;
             }
             50% {
-                transform: translate(-50%, -50%) scale(0.7);
-                opacity: 0.5;
+                transform: scale(1.2);
+                opacity: 0.3;
             }
         }
         
@@ -410,14 +405,14 @@
             overflow: hidden;
         }
         
-        /* Image Preloader */
+        /* Modern Round Image Preloader */
         .image-preloader {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 56px;
-            height: 56px;
+            width: 48px;
+            height: 48px;
             opacity: 0;
             transition: opacity 0.2s ease-out;
             pointer-events: none;
@@ -425,51 +420,66 @@
         }
         
         .image-preloader.visible {
-            opacity: 0.8;
+            opacity: 1;
         }
         
+        /* Modern circular loader with smooth animation */
         .image-preloader::before {
             content: '';
             position: absolute;
             inset: 0;
-            background-color: #fafafa;
-            border-radius: 6px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                rgba(0, 0, 0, 0.1) 60deg,
+                rgba(0, 0, 0, 0.2) 120deg,
+                rgba(0, 0, 0, 0.3) 180deg,
+                rgba(0, 0, 0, 0.2) 240deg,
+                rgba(0, 0, 0, 0.1) 300deg,
+                transparent 360deg
+            );
+            animation: smooth-rotate 1.5s linear infinite;
         }
         
-        /* Loading progress fill */
-        .image-preloader .loading-fill {
-            position: absolute;
-            inset: 0;
-            background-color: #f3f3f3;
-            border-radius: 6px;
-            transform-origin: left;
-            transform: scaleX(0);
-            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        .image-preloader.loading .loading-fill {
-            transform: scaleX(0.9);
-        }
-        
-        /* Subtle shimmer effect */
         .image-preloader::after {
             content: '';
             position: absolute;
-            inset: -1px;
-            background: 
-                linear-gradient(90deg, 
-                    transparent 30%, 
-                    rgba(255, 255, 255, 0.5) 50%, 
-                    transparent 70%
-                );
-            border-radius: 6px;
-            animation: shimmer 1.5s ease-in-out infinite;
-            transform: translateX(-200%);
+            inset: 4px;
+            border-radius: 50%;
+            background-color: var(--background-color);
         }
         
-        @keyframes shimmer {
-            to {
-                transform: translateX(200%);
+        /* Inner spinning dot */
+        .image-preloader .loading-fill {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-color);
+            transform: translate(-50%, -50%);
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes smooth-rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(0.6);
+                opacity: 0.5;
             }
         }
         
@@ -493,7 +503,7 @@
             opacity: 0;
         }
         
-        /* Navigation Arrows - positioned at page edges */
+        /* Navigation Arrows - positioned at page edges on desktop */
         .nav-arrow {
             position: fixed;
             top: 50%;
@@ -528,6 +538,15 @@
             stroke: var(--text-color);
             stroke-width: 2;
             fill: none;
+        }
+        
+        /* Mobile Navigation Controls */
+        .mobile-nav-controls {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-top: 20px;
         }
         
         /* Text Content */
@@ -601,18 +620,25 @@
                 display: block;
             }
             
+            /* Hide side arrows on mobile */
             .nav-arrow {
-                width: 30px;
-                height: 30px;
-                position: absolute;
+                display: none !important;
             }
             
-            .nav-arrow.prev {
-                left: 10px;
+            /* Show mobile controls under gallery */
+            .mobile-nav-controls {
+                display: flex;
             }
             
-            .nav-arrow.next {
-                right: 10px;
+            .mobile-nav-controls .nav-arrow {
+                display: block !important;
+                position: relative;
+                top: auto;
+                left: auto;
+                right: auto;
+                transform: none;
+                width: 36px;
+                height: 36px;
             }
             
             main {
@@ -622,6 +648,11 @@
             
             .site-title {
                 font-size: 1.2em;
+            }
+            
+            /* Adjust gallery bottom margin to accommodate controls */
+            .gallery-container {
+                margin-bottom: 0;
             }
         }
         
@@ -666,7 +697,9 @@
     <div class="page-preloader" id="page-preloader">
         <div class="preloader-container">
             <div class="preloader-ring"></div>
-            <div class="preloader-dot"></div>
+            <div class="preloader-ring"></div>
+            <div class="preloader-ring"></div>
+            <div class="preloader-arc"></div>
         </div>
     </div>
     
@@ -929,6 +962,7 @@
             
             // Clean up any existing arrows first
             document.querySelectorAll('.nav-arrow').forEach(arrow => arrow.remove());
+            document.querySelectorAll('.mobile-nav-controls').forEach(control => control.remove());
             
             // Update active navigation
             document.querySelectorAll('.nav-item').forEach((item) => {
@@ -1196,6 +1230,7 @@
             if (document.querySelector('.nav-arrow')) return;
             
             if (CONFIG.photos.length > 1) {
+                // Desktop arrows (on sides)
                 const arrowsHTML = `
                     <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
                         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
@@ -1205,6 +1240,23 @@
                     </button>
                 `;
                 document.body.insertAdjacentHTML('beforeend', arrowsHTML);
+                
+                // Mobile controls (under gallery)
+                const gallery = document.getElementById('gallery');
+                if (gallery) {
+                    const mobileControlsHTML = `
+                        <div class="mobile-nav-controls">
+                            <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
+                                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <button class="nav-arrow next" onclick="nextPhoto()" aria-label="Next photo">
+                                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        </div>
+                    `;
+                    gallery.insertAdjacentHTML('afterend', mobileControlsHTML);
+                }
+                
                 setupTouchEvents();
             }
         }
@@ -1459,12 +1511,29 @@
         // Keyboard navigation
         function setupKeyboardNavigation() {
             document.addEventListener('keydown', (e) => {
+                // Check if we're in the gallery and have photos
                 if (CONFIG.photos.length <= 1) return;
                 
+                // Prevent arrow key navigation if focus is on navigation elements
+                const activeElement = document.activeElement;
+                if (activeElement && (
+                    activeElement.classList.contains('nav-item') ||
+                    activeElement.classList.contains('site-title') ||
+                    activeElement.classList.contains('hamburger')
+                )) {
+                    return;
+                }
+                
                 if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
                     previousPhoto();
+                    // Remove focus from any navigation element
+                    if (activeElement) activeElement.blur();
                 } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
                     nextPhoto();
+                    // Remove focus from any navigation element
+                    if (activeElement) activeElement.blur();
                 }
             });
         }
