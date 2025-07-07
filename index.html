@@ -30,7 +30,7 @@
             --font-family: 'Crimson Text', serif; /* Google Font name */
             --font-size: 18px;
             --line-height: 1.6;
-            --footer-text: '© 2025 Leonardo Fiori. All rights reserved. Test 2.'; /* Edit footer text */
+            --footer-text: '© 2025 Leonardo Fiori. All rights reserved. Test 3.'; /* Edit footer text */
             --site-title: 'Leonardo Fiori'; /* Edit site title that appears in navigation */
             --nav-height: 60px;
             --transition-duration: 0.5s;
@@ -234,6 +234,9 @@
             margin-left: auto;
             margin-right: auto;
             position: relative;
+            display: flex;
+            align-items: center;
+            min-height: calc(100vh - var(--nav-height));
         }
         
         /* Content Wrapper for flexible ordering */
@@ -242,10 +245,53 @@
             margin: 0 auto;
             display: flex;
             flex-direction: column;
+            width: 100%;
         }
         
         .content-wrapper.text-above {
             flex-direction: column-reverse;
+        }
+        
+        /* Loading Spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            opacity: 0;
+            animation: fade-in 0.3s ease-out 0.3s forwards;
+        }
+        
+        .loading-spinner::after {
+            content: '';
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 4px;
+            border-radius: 50%;
+            border: 2px solid var(--text-color);
+            border-color: var(--text-color) transparent var(--text-color) transparent;
+            animation: loading-spinner 1.2s linear infinite;
+        }
+        
+        @keyframes loading-spinner {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 0.4;
+            }
         }
         
         /* Gallery */
@@ -411,6 +457,7 @@
             
             main {
                 padding: 20px 10px;
+                min-height: calc(100vh - var(--nav-height));
             }
             
             .site-title {
@@ -483,7 +530,8 @@
             touchStartX: null,
             imageCache: new Map(),
             mobileMenuOpen: false,
-            galleryElement: null
+            galleryElement: null,
+            loadingAbortController: null // For cancelling ongoing loads
         };
         
         // Silent fetch that doesn't log errors
@@ -675,6 +723,15 @@
         
         // Load a specific project
         async function loadProject(projectName) {
+            // Cancel any ongoing loading operations
+            if (CONFIG.loadingAbortController) {
+                CONFIG.loadingAbortController.abort();
+            }
+            
+            // Create new abort controller for this load
+            CONFIG.loadingAbortController = new AbortController();
+            const signal = CONFIG.loadingAbortController.signal;
+            
             CONFIG.currentProject = projectName;
             CONFIG.currentPhotoIndex = 0;
             CONFIG.photos = [];
@@ -707,6 +764,8 @@
             // Load and display text content first
             let hasText = false;
             try {
+                if (signal.aborted) return;
+                
                 const textResponse = await silentFetch(`${projectName}/text.txt`);
                 if (textResponse.ok) {
                     const textContent = await textResponse.text();
@@ -723,11 +782,13 @@
             }
             
             // Start loading photos immediately without blocking
-            loadPhotosOptimized(projectName, contentWrapper, textPosition === 'above' && hasText);
+            if (!signal.aborted) {
+                loadPhotosOptimized(projectName, contentWrapper, textPosition === 'above' && hasText, signal);
+            }
         }
         
         // Optimized photo loading with direct image loading
-        async function loadPhotosOptimized(projectName, contentWrapper, insertAtEnd) {
+        async function loadPhotosOptimized(projectName, contentWrapper, insertAtEnd, signal) {
             // First try to load photos.txt for custom names
             const photosResponse = await silentFetch(`${projectName}/photos.txt`);
             if (photosResponse.ok) {
@@ -738,36 +799,67 @@
                 
                 // Load custom photos
                 for (let i = 0; i < photoFiles.length; i++) {
+                    if (signal.aborted) return;
+                    
                     const photoPath = `${projectName}/${photoFiles[i]}`;
-                    const success = await tryLoadImage(photoPath);
+                    const success = await tryLoadImage(photoPath, signal);
                     if (success) {
                         if (CONFIG.photos.length === 0) {
                             createGalleryElement(contentWrapper, insertAtEnd);
                         }
                         addPhotoToGallery(photoPath, CONFIG.photos.length === 0);
+                        
+                        // Add navigation arrows as soon as we have 2 photos
+                        if (CONFIG.photos.length === 2) {
+                            updateNavigationArrows();
+                        }
                     }
                 }
             } else {
                 // Use optimized loading for standard naming pattern
-                await loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd);
+                await loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd, signal);
             }
-            
-            // Update navigation arrows after all photos are loaded
-            updateNavigationArrows();
         }
         
         // Try to load an image using Image object
-        async function tryLoadImage(src) {
+        async function tryLoadImage(src, signal) {
             return new Promise((resolve) => {
+                if (signal && signal.aborted) {
+                    resolve(false);
+                    return;
+                }
+                
                 const img = new Image();
-                img.onload = () => resolve(true);
-                img.onerror = () => resolve(false);
+                
+                const cleanup = () => {
+                    img.onload = null;
+                    img.onerror = null;
+                };
+                
+                img.onload = () => {
+                    cleanup();
+                    resolve(true);
+                };
+                
+                img.onerror = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                
+                // Handle abort
+                if (signal) {
+                    signal.addEventListener('abort', () => {
+                        cleanup();
+                        resolve(false);
+                    });
+                }
+                
                 img.src = src;
             });
         }
         
         // Optimized loading of standard-named photos
-        async function loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd) {
+        async function loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd, signal) {
             const extensions = ['jpg', 'jpeg', 'png', 'webp'];
             let foundAny = false;
             let consecutiveNotFound = 0;
@@ -776,12 +868,14 @@
             
             // Try loading images sequentially
             for (let i = 1; i <= maxImages && consecutiveNotFound < maxConsecutiveNotFound; i++) {
+                if (signal.aborted) return;
+                
                 let found = false;
                 
                 // Try each extension
                 for (const ext of extensions) {
                     const photoPath = `${projectName}/img/img${i}.${ext}`;
-                    const success = await tryLoadImage(photoPath);
+                    const success = await tryLoadImage(photoPath, signal);
                     
                     if (success) {
                         found = true;
@@ -793,6 +887,12 @@
                         }
                         
                         addPhotoToGallery(photoPath, CONFIG.photos.length === 0);
+                        
+                        // Add navigation arrows as soon as we have 2 photos
+                        if (CONFIG.photos.length === 2) {
+                            updateNavigationArrows();
+                        }
+                        
                         break; // Found image with this extension, move to next index
                     }
                 }
@@ -808,6 +908,7 @@
             const galleryHTML = `
                 <div class="gallery-container" id="gallery">
                     <div class="gallery-placeholder">
+                        <div class="loading-spinner"></div>
                         <div class="photo-wrapper" id="photo-wrapper">
                         </div>
                     </div>
@@ -831,6 +932,12 @@
             
             const photoWrapper = document.getElementById('photo-wrapper');
             if (photoWrapper) {
+                // Remove loading spinner when first photo is added
+                if (isFirst) {
+                    const spinner = document.querySelector('.loading-spinner');
+                    if (spinner) spinner.remove();
+                }
+                
                 const img = document.createElement('img');
                 img.className = isFirst ? 'photo active' : 'photo';
                 img.src = photoPath;
@@ -848,6 +955,9 @@
         
         // Update navigation arrows based on number of photos
         function updateNavigationArrows() {
+            // Check if arrows already exist
+            if (document.querySelector('.nav-arrow')) return;
+            
             if (CONFIG.photos.length > 1) {
                 const arrowsHTML = `
                     <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
