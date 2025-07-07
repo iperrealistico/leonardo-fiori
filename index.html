@@ -30,7 +30,7 @@
             --font-family: 'Crimson Text', serif; /* Google Font name */
             --font-size: 18px;
             --line-height: 1.6;
-            --footer-text: '© 2025 Leonardo Fiori. All rights reserved.'; /* Edit footer text */
+            --footer-text: '© 2025 Leonardo Fiori. All rights reserved. Test.'; /* Edit footer text */
             --site-title: 'Leonardo Fiori'; /* Edit site title that appears in navigation */
             --nav-height: 60px;
             --transition-duration: 0.5s;
@@ -318,6 +318,69 @@
             overflow: hidden;
         }
         
+        /* Image Preloader */
+        .image-preloader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 56px;
+            height: 56px;
+            opacity: 0;
+            transition: opacity 0.2s ease-out;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .image-preloader.visible {
+            opacity: 0.8;
+        }
+        
+        .image-preloader::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-color: #fafafa;
+            border-radius: 6px;
+        }
+        
+        /* Loading progress fill */
+        .image-preloader .loading-fill {
+            position: absolute;
+            inset: 0;
+            background-color: #f3f3f3;
+            border-radius: 6px;
+            transform-origin: left;
+            transform: scaleX(0);
+            transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        
+        .image-preloader.loading .loading-fill {
+            transform: scaleX(0.9);
+        }
+        
+        /* Subtle shimmer effect */
+        .image-preloader::after {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            background: 
+                linear-gradient(90deg, 
+                    transparent 30%, 
+                    rgba(255, 255, 255, 0.5) 50%, 
+                    transparent 70%
+                );
+            border-radius: 6px;
+            animation: shimmer 1.5s ease-in-out infinite;
+            transform: translateX(-200%);
+        }
+        
+        @keyframes shimmer {
+            to {
+                transform: translateX(200%);
+            }
+        }
+        
         .photo {
             position: absolute;
             top: 0;
@@ -326,11 +389,16 @@
             height: 100%;
             object-fit: contain;
             opacity: 0;
-            transition: opacity var(--transition-duration);
+            transition: opacity calc(var(--transition-duration) * 0.8) ease-out;
+            z-index: 1;
         }
         
-        .photo.active {
+        .photo.active:not(.loading) {
             opacity: 1;
+        }
+        
+        .photo.loading {
+            opacity: 0;
         }
         
         /* Navigation Arrows - positioned at page edges */
@@ -938,13 +1006,60 @@
                     if (spinner) spinner.remove();
                 }
                 
+                // Create container for image and its preloader
+                const imageContainer = document.createElement('div');
+                imageContainer.style.position = 'absolute';
+                imageContainer.style.width = '100%';
+                imageContainer.style.height = '100%';
+                
+                // Create preloader
+                const preloader = document.createElement('div');
+                preloader.className = 'image-preloader';
+                preloader.dataset.index = CONFIG.photos.length - 1;
+                
+                // Add loading fill
+                const loadingFill = document.createElement('div');
+                loadingFill.className = 'loading-fill';
+                preloader.appendChild(loadingFill);
+                
+                // Create image
                 const img = document.createElement('img');
-                img.className = isFirst ? 'photo active' : 'photo';
-                img.src = photoPath;
+                img.className = isFirst ? 'photo active loading' : 'photo loading';
+                img.dataset.index = CONFIG.photos.length - 1;
                 img.alt = `Photo ${CONFIG.photos.length}`;
+                
+                // Show preloader for active image
+                if (isFirst) {
+                    preloader.classList.add('visible');
+                    setTimeout(() => preloader.classList.add('loading'), 100);
+                }
+                
+                // Handle image load
+                img.onload = () => {
+                    // Complete the loading animation before hiding
+                    if (preloader.classList.contains('visible')) {
+                        const loadingFill = preloader.querySelector('.loading-fill');
+                        if (loadingFill) {
+                            loadingFill.style.transform = 'scaleX(1)';
+                        }
+                        setTimeout(() => {
+                            img.classList.remove('loading');
+                            setTimeout(() => {
+                                preloader.classList.remove('visible', 'loading');
+                            }, 200);
+                        }, 300);
+                    } else {
+                        img.classList.remove('loading');
+                    }
+                };
+                
+                // Set source to start loading
+                img.src = photoPath;
                 img.loading = isFirst ? 'eager' : 'lazy';
                 
-                photoWrapper.appendChild(img);
+                imageContainer.appendChild(preloader);
+                imageContainer.appendChild(img);
+                photoWrapper.appendChild(imageContainer);
                 
                 // Preload next image
                 if (CONFIG.photos.length === 2) {
@@ -1113,8 +1228,23 @@
         // Gallery navigation functions
         function showPhoto(index) {
             const photos = document.querySelectorAll('.photo');
+            const preloaders = document.querySelectorAll('.image-preloader');
+            
             photos.forEach((photo, i) => {
-                photo.classList.toggle('active', i === index);
+                const preloader = preloaders[i];
+                const isActive = i === index;
+                
+                if (isActive) {
+                    photo.classList.add('active');
+                    // Show preloader if image is still loading
+                    if (photo.classList.contains('loading')) {
+                        preloader.classList.add('visible');
+                        setTimeout(() => preloader.classList.add('loading'), 100);
+                    }
+                } else {
+                    photo.classList.remove('active');
+                    preloader.classList.remove('visible', 'loading');
+                }
             });
             
             // Preload adjacent images
@@ -1137,6 +1267,34 @@
             if (CONFIG.imageCache.has(src)) return;
             
             const img = new Image();
+            
+            // Find the corresponding photo element
+            const photoIndex = CONFIG.photos.indexOf(src);
+            if (photoIndex !== -1) {
+                img.onload = () => {
+                    const photoElement = document.querySelector(`.photo[data-index="${photoIndex}"]`);
+                    const preloaderElement = document.querySelector(`.image-preloader[data-index="${photoIndex}"]`);
+                    
+                    if (photoElement) {
+                        // If this image is currently active, complete loading animation
+                        if (photoElement.classList.contains('active') && preloaderElement && preloaderElement.classList.contains('visible')) {
+                            const loadingFill = preloaderElement.querySelector('.loading-fill');
+                            if (loadingFill) {
+                                loadingFill.style.transform = 'scaleX(1)';
+                            }
+                            setTimeout(() => {
+                                photoElement.classList.remove('loading');
+                                setTimeout(() => {
+                                    preloaderElement.classList.remove('visible', 'loading');
+                                }, 200);
+                            }, 300);
+                        } else {
+                            photoElement.classList.remove('loading');
+                        }
+                    }
+                };
+            }
+            
             img.src = src;
             CONFIG.imageCache.set(src, img);
         }
