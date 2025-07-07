@@ -482,7 +482,8 @@
             photos: [],
             touchStartX: null,
             imageCache: new Map(),
-            mobileMenuOpen: false
+            mobileMenuOpen: false,
+            galleryElement: null
         };
         
         // Silent fetch that doesn't log errors
@@ -677,6 +678,7 @@
             CONFIG.currentProject = projectName;
             CONFIG.currentPhotoIndex = 0;
             CONFIG.photos = [];
+            CONFIG.galleryElement = null;
             
             // Clean up any existing arrows first
             document.querySelectorAll('.nav-arrow').forEach(arrow => arrow.remove());
@@ -720,110 +722,151 @@
                 // No text file, that's ok
             }
             
-            // Load photos in background
-            loadPhotos(projectName).then(() => {
-                if (CONFIG.photos.length > 0) {
-                    const galleryHTML = `
-                        <div class="gallery-container" id="gallery">
-                            <div class="gallery-placeholder">
-                                <div class="photo-wrapper" id="photo-wrapper">
-                                    ${CONFIG.photos.map((photo, index) => 
-                                        `<img class="photo ${index === 0 ? 'active' : ''}" 
-                                             src="${photo}" 
-                                             alt="Photo ${index + 1}" 
-                                             loading="${index === 0 ? 'eager' : 'lazy'}">`
-                                    ).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    
-                    const galleryDiv = document.createElement('div');
-                    galleryDiv.innerHTML = galleryHTML;
-                    
-                    if (textPosition === 'above' && hasText) {
-                        contentWrapper.appendChild(galleryDiv.firstChild);
-                    } else {
-                        contentWrapper.insertBefore(galleryDiv.firstChild, contentWrapper.firstChild);
-                    }
-                    
-                    // Add navigation arrows at page level ONLY if more than one photo
-                    if (CONFIG.photos.length > 1) {
-                        const arrowsHTML = `
-                            <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
-                                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                            </button>
-                            <button class="nav-arrow next" onclick="nextPhoto()" aria-label="Next photo">
-                                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                            </button>
-                        `;
-                        document.body.insertAdjacentHTML('beforeend', arrowsHTML);
-                        setupTouchEvents();
-                    }
-                    
-                    // Preload next image
-                    if (CONFIG.photos.length > 1) {
-                        preloadImage(CONFIG.photos[1]);
-                    }
-                }
-            });
+            // Start loading photos immediately without blocking
+            loadPhotosOptimized(projectName, contentWrapper, textPosition === 'above' && hasText);
         }
         
-        // Load photos from a project folder
-        async function loadPhotos(projectName) {
-            CONFIG.photos = [];
-            
-            try {
-                // First try to load photos.txt for custom names
-                const photosResponse = await silentFetch(`${projectName}/photos.txt`);
-                if (photosResponse.ok) {
-                    const photosText = await photosResponse.text();
-                    const photoFiles = photosText.split('\n')
-                        .map(line => line.trim())
-                        .filter(line => line.length > 0 && !line.startsWith('#'));
-                    
-                    // Verify each photo exists
-                    for (const photoFile of photoFiles) {
-                        try {
-                            const photoPath = `${projectName}/${photoFile}`;
-                            const response = await silentFetch(photoPath, { method: 'HEAD' });
-                            if (response.ok) {
-                                CONFIG.photos.push(photoPath);
-                            }
-                        } catch (e) {
-                            console.warn(`Photo not found: ${photoFile}`);
+        // Optimized photo loading that displays images as they're found
+        async function loadPhotosOptimized(projectName, contentWrapper, insertAtEnd) {
+            // First try to load photos.txt for custom names
+            const photosResponse = await silentFetch(`${projectName}/photos.txt`);
+            if (photosResponse.ok) {
+                const photosText = await photosResponse.text();
+                const photoFiles = photosText.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0 && !line.startsWith('#'));
+                
+                // Load custom photos
+                for (let i = 0; i < photoFiles.length; i++) {
+                    const photoPath = `${projectName}/${photoFiles[i]}`;
+                    const response = await silentFetch(photoPath, { method: 'HEAD' });
+                    if (response.ok) {
+                        if (i === 0) {
+                            // Create gallery for first photo immediately
+                            createGalleryElement(contentWrapper, insertAtEnd);
                         }
-                    }
-                } else {
-                    // Fallback: try standard naming pattern imgX.jpg
-                    let photoIndex = 1;
-                    let consecutiveFailures = 0;
-                    const maxConsecutiveFailures = 5; // Stop after 5 consecutive missing photos
-                    
-                    while (photoIndex <= 100 && consecutiveFailures < maxConsecutiveFailures) {
-                        let found = false;
-                        const extensions = ['jpg', 'jpeg', 'png', 'webp'];
-                        
-                        for (const ext of extensions) {
-                            const photoPath = `${projectName}/img${photoIndex}.${ext}`;
-                            const response = await silentFetch(photoPath, { method: 'HEAD' });
-                            if (response.ok) {
-                                CONFIG.photos.push(photoPath);
-                                found = true;
-                                consecutiveFailures = 0; // Reset counter when we find a photo
-                                break;
-                            }
-                        }
-                        
-                        if (!found) {
-                            consecutiveFailures++;
-                        }
-                        
-                        photoIndex++;
+                        addPhotoToGallery(photoPath, i === 0);
                     }
                 }
-            } catch (error) {
-                console.error('Error loading photos:', error);
+            } else {
+                // Use parallel loading for standard naming pattern
+                await loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd);
+            }
+            
+            // Update navigation arrows after all photos are loaded
+            updateNavigationArrows();
+        }
+        
+        // Optimized loading of standard-named photos
+        async function loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd) {
+            const extensions = ['jpg', 'jpeg', 'png', 'webp'];
+            const batchSize = 10; // Check 10 images at a time
+            let foundAny = false;
+            let consecutiveNotFound = 0;
+            const maxConsecutiveNotFound = 5;
+            
+            for (let startIndex = 1; startIndex <= 100 && consecutiveNotFound < maxConsecutiveNotFound; startIndex += batchSize) {
+                const promises = [];
+                
+                // Create batch of promises
+                for (let i = startIndex; i < startIndex + batchSize && i <= 100; i++) {
+                    promises.push(checkImageExists(projectName, i, extensions));
+                }
+                
+                // Wait for batch to complete
+                const results = await Promise.all(promises);
+                
+                // Process results
+                let foundInBatch = false;
+                for (const result of results) {
+                    if (result) {
+                        foundInBatch = true;
+                        consecutiveNotFound = 0;
+                        
+                        if (!foundAny) {
+                            // Create gallery for first photo
+                            createGalleryElement(contentWrapper, insertAtEnd);
+                            foundAny = true;
+                        }
+                        
+                        addPhotoToGallery(result, CONFIG.photos.length === 0);
+                    }
+                }
+                
+                if (!foundInBatch) {
+                    consecutiveNotFound++;
+                }
+            }
+        }
+        
+        // Check if an image exists with any of the given extensions
+        async function checkImageExists(projectName, index, extensions) {
+            for (const ext of extensions) {
+                const photoPath = `${projectName}/img/img${index}.${ext}`;
+                const response = await silentFetch(photoPath, { method: 'HEAD' });
+                if (response.ok) {
+                    return photoPath;
+                }
+            }
+            return null;
+        }
+        
+        // Create the gallery element structure
+        function createGalleryElement(contentWrapper, insertAtEnd) {
+            const galleryHTML = `
+                <div class="gallery-container" id="gallery">
+                    <div class="gallery-placeholder">
+                        <div class="photo-wrapper" id="photo-wrapper">
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const galleryDiv = document.createElement('div');
+            galleryDiv.innerHTML = galleryHTML;
+            CONFIG.galleryElement = galleryDiv.firstChild;
+            
+            if (insertAtEnd) {
+                contentWrapper.appendChild(CONFIG.galleryElement);
+            } else {
+                contentWrapper.insertBefore(CONFIG.galleryElement, contentWrapper.firstChild);
+            }
+        }
+        
+        // Add a photo to the existing gallery
+        function addPhotoToGallery(photoPath, isFirst) {
+            CONFIG.photos.push(photoPath);
+            
+            const photoWrapper = document.getElementById('photo-wrapper');
+            if (photoWrapper) {
+                const img = document.createElement('img');
+                img.className = isFirst ? 'photo active' : 'photo';
+                img.src = photoPath;
+                img.alt = `Photo ${CONFIG.photos.length}`;
+                img.loading = isFirst ? 'eager' : 'lazy';
+                
+                photoWrapper.appendChild(img);
+                
+                // Preload next image
+                if (CONFIG.photos.length === 2) {
+                    preloadImage(photoPath);
+                }
+            }
+        }
+        
+        // Update navigation arrows based on number of photos
+        function updateNavigationArrows() {
+            if (CONFIG.photos.length > 1) {
+                const arrowsHTML = `
+                    <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
+                        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    <button class="nav-arrow next" onclick="nextPhoto()" aria-label="Next photo">
+                        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
+                `;
+                document.body.insertAdjacentHTML('beforeend', arrowsHTML);
+                setupTouchEvents();
             }
         }
         
