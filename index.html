@@ -37,6 +37,98 @@
             --text-position: 'below'; /* 'above' or 'below' - position of text relative to images */
             --external-links-new-tab: true; /* true or false - open external links in new tab */
         }
+        
+        /* Page Preloader - Shows immediately */
+        .page-preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+        }
+        
+        .page-preloader.fade-out {
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        /* Modern round preloader */
+        .preloader-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        
+        /* Outer ring */
+        .preloader-ring {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Animated ring */
+        .preloader-ring::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid transparent;
+            border-top-color: var(--text-color);
+            animation: preloader-spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+        }
+        
+        /* Center dot */
+        .preloader-dot {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--text-color);
+            transform: translate(-50%, -50%);
+            animation: preloader-pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes preloader-spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes preloader-pulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(0.7);
+                opacity: 0.5;
+            }
+        }
+        
+        /* Hide content initially to prevent flash */
+        body {
+            visibility: hidden;
+        }
+        
+        body.loaded {
+            visibility: visible;
+        }
     </style>
     
     <!-- Google Fonts -->
@@ -570,6 +662,14 @@
     </style>
 </head>
 <body>
+    <!-- Page Preloader -->
+    <div class="page-preloader" id="page-preloader">
+        <div class="preloader-container">
+            <div class="preloader-ring"></div>
+            <div class="preloader-dot"></div>
+        </div>
+    </div>
+    
     <nav role="navigation" aria-label="Main navigation">
         <div class="nav-container" id="navigation"></div>
         <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
@@ -632,9 +732,31 @@
                 
                 // Load project from URL or default to home
                 loadProject(projectFromUrl);
+                
+                // Remove preloader after content is ready
+                setTimeout(() => {
+                    const preloader = document.getElementById('page-preloader');
+                    if (preloader) {
+                        preloader.classList.add('fade-out');
+                        document.body.classList.add('loaded');
+                        setTimeout(() => {
+                            preloader.remove();
+                        }, 300);
+                    }
+                }, 100);
+                
             } catch (error) {
                 console.error('Initialization error:', error);
                 document.getElementById('main-content').innerHTML = '<p>Error loading content. Please ensure files are served from a web server.</p>';
+                // Still remove preloader on error
+                const preloader = document.getElementById('page-preloader');
+                if (preloader) {
+                    preloader.classList.add('fade-out');
+                    document.body.classList.add('loaded');
+                    setTimeout(() => {
+                        preloader.remove();
+                    }, 300);
+                }
             }
         }
         
