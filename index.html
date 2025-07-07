@@ -356,6 +356,19 @@
             text-align: center;
         }
         
+        .text-content ul, .text-content ol {
+            margin-bottom: 1em;
+            padding-left: 2em;
+        }
+        
+        .text-content li {
+            margin-bottom: 0.5em;
+        }
+        
+        .text-content u {
+            text-decoration: underline;
+        }
+        
         /* Footer */
         footer {
             text-align: center;
@@ -665,6 +678,9 @@
             CONFIG.currentPhotoIndex = 0;
             CONFIG.photos = [];
             
+            // Clean up any existing arrows first
+            document.querySelectorAll('.nav-arrow').forEach(arrow => arrow.remove());
+            
             // Update active navigation
             document.querySelectorAll('.nav-item').forEach((item) => {
                 const project = CONFIG.projects.find(p => p.title === item.textContent);
@@ -731,7 +747,7 @@
                         contentWrapper.insertBefore(galleryDiv.firstChild, contentWrapper.firstChild);
                     }
                     
-                    // Add navigation arrows at page level if more than one photo
+                    // Add navigation arrows at page level ONLY if more than one photo
                     if (CONFIG.photos.length > 1) {
                         const arrowsHTML = `
                             <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
@@ -809,74 +825,144 @@
             } catch (error) {
                 console.error('Error loading photos:', error);
             }
-            
-            // Clean up any existing arrows when changing projects
-            document.querySelectorAll('.nav-arrow').forEach(arrow => arrow.remove());
         }
         
-        // Parse simple markdown
+        // Enhanced Markdown parser
         function parseMarkdown(text) {
-            // Preserve <center> tags
-            text = text.replace(/<center>/gi, '<center>');
-            text = text.replace(/<\/center>/gi, '</center>');
+            // Escape HTML
+            const escapeHtml = (str) => {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            };
             
-            // Headers
-            text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
-            text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
-            text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
-            
-            // Bold and italic
-            text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
-            
-            // Links
-            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-            
-            // Line breaks and paragraphs
+            // Process the text line by line for better control
             const lines = text.split('\n');
             let html = '';
+            let inList = false;
             let inParagraph = false;
             let inCenter = false;
             
-            for (let line of lines) {
-                line = line.trim();
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
                 
-                if (line.startsWith('<center>')) {
+                // Check for center tags
+                if (line.trim().toLowerCase() === '<center>') {
                     if (inParagraph) {
                         html += '</p>';
                         inParagraph = false;
                     }
-                    html += line;
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += '<center>';
                     inCenter = true;
-                } else if (line.startsWith('</center>')) {
-                    html += line;
+                    continue;
+                }
+                
+                if (line.trim().toLowerCase() === '</center>') {
+                    html += '</center>';
                     inCenter = false;
-                } else if (line === '') {
+                    continue;
+                }
+                
+                // Headers (must be at start of line)
+                if (line.match(/^#{1,6}\s/)) {
+                    if (inParagraph) {
+                        html += '</p>';
+                        inParagraph = false;
+                    }
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    
+                    const level = line.match(/^(#{1,6})\s/)[1].length;
+                    const content = line.replace(/^#{1,6}\s+/, '');
+                    html += `<h${level}>${processInlineMarkdown(content)}</h${level}>`;
+                    continue;
+                }
+                
+                // Lists
+                if (line.match(/^\*\s+/)) {
+                    if (inParagraph) {
+                        html += '</p>';
+                        inParagraph = false;
+                    }
+                    if (!inList) {
+                        html += '<ul>';
+                        inList = true;
+                    }
+                    const content = line.replace(/^\*\s+/, '');
+                    html += `<li>${processInlineMarkdown(content)}</li>`;
+                    continue;
+                }
+                
+                // Empty line
+                if (line.trim() === '') {
                     if (inParagraph && !inCenter) {
                         html += '</p>';
                         inParagraph = false;
                     }
-                } else if (line.startsWith('<h') || line.startsWith('</h')) {
-                    if (inParagraph) {
-                        html += '</p>';
-                        inParagraph = false;
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
                     }
-                    html += line;
-                } else {
-                    if (!inParagraph && !inCenter) {
-                        html += '<p>';
-                        inParagraph = true;
-                    }
-                    html += line + ' ';
+                    continue;
                 }
+                
+                // Regular paragraph
+                if (inList) {
+                    html += '</ul>';
+                    inList = false;
+                }
+                
+                if (!inParagraph && !inCenter) {
+                    html += '<p>';
+                    inParagraph = true;
+                }
+                
+                html += processInlineMarkdown(line) + ' ';
             }
             
-            if (inParagraph) {
-                html += '</p>';
-            }
+            // Close any open tags
+            if (inParagraph) html += '</p>';
+            if (inList) html += '</ul>';
             
             return html;
+        }
+        
+        // Process inline markdown (bold, italic, links, etc.)
+        function processInlineMarkdown(text) {
+            // Escape HTML first
+            text = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // Bold + Italic (***text***)
+            text = text.replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            
+            // Bold (**text**)
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Italic (*text*)
+            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Underline (__text__)
+            text = text.replace(/__(.*?)__/g, '<u>$1</u>');
+            
+            // Links with text [text](url)
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+            
+            // Standalone URLs (http:// or https://)
+            text = text.replace(/(^|[^"'])(https?:\/\/[^\s<]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+            
+            // Email addresses
+            text = text.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1">$1</a>');
+            
+            // Social media handles (@username)
+            text = text.replace(/(^|[^@\w])@(\w{1,15})\b/g, '$1@$2');
+            
+            return text;
         }
         
         // Gallery navigation functions
