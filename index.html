@@ -30,10 +30,12 @@
             --font-family: 'Crimson Text', serif; /* Google Font name */
             --font-size: 18px;
             --line-height: 1.6;
-            --footer-text: '© 2024 John Doe Photography. All rights reserved.'; /* Edit footer text */
-            --site-title: 'John Doe'; /* Edit site title that appears in navigation */
+            --footer-text: '© 2025 Leonardo Fiori. All rights reserved.'; /* Edit footer text */
+            --site-title: 'Leonardo Fiori'; /* Edit site title that appears in navigation */
             --nav-height: 60px;
             --transition-duration: 0.5s;
+            --text-position: 'above'; /* 'above' or 'below' - position of text relative to images */
+            --external-links-new-tab: true; /* true or false - open external links in new tab */
         }
     </style>
     
@@ -117,6 +119,13 @@
             right: 0;
             height: 1px;
             background-color: var(--text-color);
+        }
+        
+        .nav-item.external::after {
+            content: '↗';
+            display: inline-block;
+            margin-left: 5px;
+            font-size: 0.8em;
         }
         
         /* Site Title */
@@ -221,10 +230,22 @@
             flex: 1;
             margin-top: var(--nav-height);
             padding: 40px 20px;
-            max-width: 1200px;
             width: 100%;
             margin-left: auto;
             margin-right: auto;
+            position: relative;
+        }
+        
+        /* Content Wrapper for flexible ordering */
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .content-wrapper.text-above {
+            flex-direction: column-reverse;
         }
         
         /* Gallery */
@@ -238,7 +259,7 @@
         .gallery-placeholder {
             width: 100%;
             padding-bottom: 66.67%; /* 3:2 aspect ratio */
-            background-color: rgba(0,0,0,0.05);
+            background-color: var(--background-color);
             position: relative;
         }
         
@@ -266,9 +287,9 @@
             opacity: 1;
         }
         
-        /* Navigation Arrows */
+        /* Navigation Arrows - positioned at page edges */
         .nav-arrow {
-            position: absolute;
+            position: fixed;
             top: 50%;
             transform: translateY(-50%);
             width: 40px;
@@ -279,7 +300,7 @@
             background: none;
             border: none;
             padding: 0;
-            z-index: 10;
+            z-index: 100;
             outline: none;
         }
         
@@ -364,6 +385,7 @@
             .nav-arrow {
                 width: 30px;
                 height: 30px;
+                position: absolute;
             }
             
             .nav-arrow.prev {
@@ -461,15 +483,27 @@
                 // Setup site title click
                 document.getElementById('site-title').addEventListener('click', (e) => {
                     e.preventDefault();
-                    loadProject('home');
+                    navigateToProject('home');
                 });
                 
-                // Load home project
-                loadProject('home');
+                // Check URL for project
+                const urlParams = new URLSearchParams(window.location.search);
+                const projectFromUrl = urlParams.get('project') || 'home';
+                
+                // Load project from URL or default to home
+                loadProject(projectFromUrl);
             } catch (error) {
                 console.error('Initialization error:', error);
                 document.getElementById('main-content').innerHTML = '<p>Error loading content. Please ensure files are served from a web server.</p>';
             }
+        }
+        
+        // Navigate to project and update URL
+        function navigateToProject(projectName) {
+            const url = new URL(window.location);
+            url.searchParams.set('project', projectName);
+            window.history.pushState({project: projectName}, '', url);
+            loadProject(projectName);
         }
         
         // Load available projects from projects.txt
@@ -490,17 +524,35 @@
                 // Load each project
                 for (const folder of projectFolders) {
                     try {
-                        const titleResponse = await fetch(`${folder}/title.txt`);
-                        if (titleResponse.ok) {
-                            const titleText = await titleResponse.text();
-                            const title = titleText.trim().split('\n')[0]; // Get first line
-                            CONFIG.projects.push({ folder: folder, title: title });
-                        } else {
-                            // Use folder name as title if title.txt doesn't exist
+                        // Check if it's an external link project
+                        const linkResponse = await fetch(`${folder}/link.txt`);
+                        if (linkResponse.ok) {
+                            const linkUrl = (await linkResponse.text()).trim();
+                            const titleResponse = await fetch(`${folder}/title.txt`);
+                            const title = titleResponse.ok ? 
+                                (await titleResponse.text()).trim().split('\n')[0] : 
+                                folder.charAt(0).toUpperCase() + folder.slice(1);
+                            
                             CONFIG.projects.push({ 
                                 folder: folder, 
-                                title: folder.charAt(0).toUpperCase() + folder.slice(1) 
+                                title: title,
+                                isExternal: true,
+                                link: linkUrl
                             });
+                        } else {
+                            // Regular project
+                            const titleResponse = await fetch(`${folder}/title.txt`);
+                            if (titleResponse.ok) {
+                                const titleText = await titleResponse.text();
+                                const title = titleText.trim().split('\n')[0];
+                                CONFIG.projects.push({ folder: folder, title: title, isExternal: false });
+                            } else {
+                                CONFIG.projects.push({ 
+                                    folder: folder, 
+                                    title: folder.charAt(0).toUpperCase() + folder.slice(1),
+                                    isExternal: false
+                                });
+                            }
                         }
                     } catch (e) {
                         console.warn(`Error loading project ${folder}:`, e);
@@ -510,7 +562,7 @@
             } catch (error) {
                 console.error('Error loading projects.txt:', error);
                 // Fallback: try to load just 'home' if projects.txt doesn't exist
-                CONFIG.projects.push({ folder: 'home', title: 'Home' });
+                CONFIG.projects.push({ folder: 'home', title: 'Home', isExternal: false });
             }
         }
         
@@ -528,21 +580,39 @@
                 // Desktop nav item
                 const link = document.createElement('a');
                 link.className = 'nav-item';
+                if (project.isExternal) {
+                    link.className += ' external';
+                }
                 link.textContent = project.title;
                 link.setAttribute('role', 'button');
                 link.setAttribute('tabindex', '0');
-                link.onclick = () => {
-                    loadProject(project.folder);
-                    closeMobileMenu();
-                };
+                
+                if (project.isExternal) {
+                    link.onclick = (e) => {
+                        e.preventDefault();
+                        const openInNewTab = getComputedStyle(document.documentElement)
+                            .getPropertyValue('--external-links-new-tab').trim() === 'true';
+                        if (openInNewTab) {
+                            window.open(project.link, '_blank', 'noopener,noreferrer');
+                        } else {
+                            window.location.href = project.link;
+                        }
+                    };
+                } else {
+                    link.onclick = () => {
+                        navigateToProject(project.folder);
+                        closeMobileMenu();
+                    };
+                }
+                
                 link.onkeypress = (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        loadProject(project.folder);
+                        link.onclick(e);
                     }
                 };
                 
-                if (project.folder === CONFIG.currentProject) {
+                if (project.folder === CONFIG.currentProject && !project.isExternal) {
                     link.classList.add('active');
                 }
                 
@@ -550,10 +620,7 @@
                 
                 // Mobile menu item
                 const mobileLink = link.cloneNode(true);
-                mobileLink.onclick = () => {
-                    loadProject(project.folder);
-                    closeMobileMenu();
-                };
+                mobileLink.onclick = link.onclick;
                 mobileMenu.appendChild(mobileLink);
             });
         }
@@ -591,19 +658,36 @@
             // Update active navigation
             document.querySelectorAll('.nav-item').forEach((item) => {
                 const project = CONFIG.projects.find(p => p.title === item.textContent);
-                item.classList.toggle('active', project?.folder === projectName);
+                item.classList.toggle('active', project?.folder === projectName && !project?.isExternal);
             });
             
             const mainContent = document.getElementById('main-content');
             mainContent.innerHTML = ''; // Clear content immediately
             
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'content-wrapper';
+            
+            // Check text position configuration
+            const textPosition = getComputedStyle(document.documentElement)
+                .getPropertyValue('--text-position').trim().replace(/['"]/g, '');
+            if (textPosition === 'above') {
+                contentWrapper.classList.add('text-above');
+            }
+            
+            mainContent.appendChild(contentWrapper);
+            
             // Load and display text content first
+            let hasText = false;
             try {
                 const textResponse = await fetch(`${projectName}/text.txt`);
                 if (textResponse.ok) {
                     const textContent = await textResponse.text();
                     if (textContent.trim()) {
-                        mainContent.innerHTML = `<div class="text-content">${parseMarkdown(textContent)}</div>`;
+                        hasText = true;
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'text-content';
+                        textDiv.innerHTML = parseMarkdown(textContent);
+                        contentWrapper.appendChild(textDiv);
                     }
                 }
             } catch (e) {
@@ -613,8 +697,6 @@
             // Load photos in background
             loadPhotos(projectName).then(() => {
                 if (CONFIG.photos.length > 0) {
-                    // Insert gallery before text if text exists
-                    const existingText = mainContent.querySelector('.text-content');
                     const galleryHTML = `
                         <div class="gallery-container" id="gallery">
                             <div class="gallery-placeholder">
@@ -627,25 +709,29 @@
                                     ).join('')}
                                 </div>
                             </div>
-                            ${CONFIG.photos.length > 1 ? `
-                                <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
-                                    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                                </button>
-                                <button class="nav-arrow next" onclick="nextPhoto()" aria-label="Next photo">
-                                    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                                </button>
-                            ` : ''}
                         </div>
                     `;
                     
-                    if (existingText) {
-                        existingText.insertAdjacentHTML('beforebegin', galleryHTML);
+                    const galleryDiv = document.createElement('div');
+                    galleryDiv.innerHTML = galleryHTML;
+                    
+                    if (textPosition === 'above' && hasText) {
+                        contentWrapper.appendChild(galleryDiv.firstChild);
                     } else {
-                        mainContent.innerHTML = galleryHTML;
+                        contentWrapper.insertBefore(galleryDiv.firstChild, contentWrapper.firstChild);
                     }
                     
-                    // Setup touch events
+                    // Add navigation arrows at page level if more than one photo
                     if (CONFIG.photos.length > 1) {
+                        const arrowsHTML = `
+                            <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
+                                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                            </button>
+                            <button class="nav-arrow next" onclick="nextPhoto()" aria-label="Next photo">
+                                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </button>
+                        `;
+                        document.body.insertAdjacentHTML('beforeend', arrowsHTML);
                         setupTouchEvents();
                     }
                     
@@ -713,6 +799,9 @@
             } catch (error) {
                 console.error('Error loading photos:', error);
             }
+            
+            // Clean up any existing arrows when changing projects
+            document.querySelectorAll('.nav-arrow').forEach(arrow => arrow.remove());
         }
         
         // Parse simple markdown
@@ -864,9 +953,9 @@
         
         // Handle browser back/forward
         window.addEventListener('popstate', (e) => {
-            if (e.state && e.state.project) {
-                loadProject(e.state.project);
-            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const project = urlParams.get('project') || 'home';
+            loadProject(project);
         });
     </script>
 </body>
