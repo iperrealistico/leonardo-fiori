@@ -58,61 +58,37 @@
             visibility: hidden;
         }
         
-        /* Modern round preloader with advanced animation */
+        /* Minimal circular preloader */
         .preloader-container {
             position: relative;
-            width: 60px;
-            height: 60px;
+            width: 48px;
+            height: 48px;
         }
         
-        /* Multiple rotating rings for depth */
-        .preloader-ring {
+        /* Background circle */
+        .preloader-track {
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            border: 2px solid rgba(0, 0, 0, 0.05);
-            animation: preloader-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            border: 2px solid #f0f0f0;
         }
         
-        .preloader-ring:nth-child(1) {
-            animation-delay: -0.45s;
-        }
-        
-        .preloader-ring:nth-child(2) {
-            animation-delay: -0.3s;
-        }
-        
-        .preloader-ring:nth-child(3) {
-            animation-delay: -0.15s;
-        }
-        
-        /* Animated arc */
-        .preloader-arc {
+        /* Animated fill circle */
+        .preloader-fill {
             position: absolute;
-            inset: -1px;
+            inset: 0;
             border-radius: 50%;
             border: 2px solid transparent;
-            border-top-color: var(--text-color);
-            animation: preloader-rotate 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+            border-top-color: #d0d0d0;
+            animation: preloader-spin 1s linear infinite;
         }
         
-        @keyframes preloader-rotate {
+        @keyframes preloader-spin {
             0% {
                 transform: rotate(0deg);
             }
             100% {
                 transform: rotate(360deg);
-            }
-        }
-        
-        @keyframes preloader-pulse {
-            0%, 100% {
-                transform: scale(0.8);
-                opacity: 0;
-            }
-            50% {
-                transform: scale(1.2);
-                opacity: 0.3;
             }
         }
         
@@ -405,14 +381,14 @@
             overflow: hidden;
         }
         
-        /* Modern Round Image Preloader */
+        /* Minimal circular image preloader */
         .image-preloader {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 48px;
-            height: 48px;
+            width: 40px;
+            height: 40px;
             opacity: 0;
             transition: opacity 0.2s ease-out;
             pointer-events: none;
@@ -423,63 +399,41 @@
             opacity: 1;
         }
         
-        /* Modern circular loader with smooth animation */
+        /* Background circle track */
         .image-preloader::before {
             content: '';
             position: absolute;
             inset: 0;
             border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                transparent 0deg,
-                rgba(0, 0, 0, 0.1) 60deg,
-                rgba(0, 0, 0, 0.2) 120deg,
-                rgba(0, 0, 0, 0.3) 180deg,
-                rgba(0, 0, 0, 0.2) 240deg,
-                rgba(0, 0, 0, 0.1) 300deg,
-                transparent 360deg
-            );
-            animation: smooth-rotate 1.5s linear infinite;
+            border: 2px solid #f5f5f5;
         }
         
-        .image-preloader::after {
-            content: '';
-            position: absolute;
-            inset: 4px;
-            border-radius: 50%;
-            background-color: var(--background-color);
-        }
-        
-        /* Inner spinning dot */
+        /* Animated progress circle */
         .image-preloader .loading-fill {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 8px;
-            height: 8px;
+            inset: 0;
             border-radius: 50%;
-            background-color: var(--text-color);
-            transform: translate(-50%, -50%);
-            animation: pulse-dot 1.5s ease-in-out infinite;
+            background: conic-gradient(
+                #e0e0e0 var(--progress, 0%),
+                transparent var(--progress, 0%)
+            );
+            mask: radial-gradient(
+                transparent 14px,
+                #000 16px
+            );
+            -webkit-mask: radial-gradient(
+                transparent 14px,
+                #000 16px
+            );
+            animation: progress-fill 1.5s ease-out forwards;
         }
         
-        @keyframes smooth-rotate {
+        @keyframes progress-fill {
             0% {
-                transform: rotate(0deg);
+                --progress: 0%;
             }
             100% {
-                transform: rotate(360deg);
-            }
-        }
-        
-        @keyframes pulse-dot {
-            0%, 100% {
-                transform: translate(-50%, -50%) scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: translate(-50%, -50%) scale(0.6);
-                opacity: 0.5;
+                --progress: 90%;
             }
         }
         
@@ -696,10 +650,8 @@
     <!-- Page Preloader -->
     <div class="page-preloader" id="page-preloader">
         <div class="preloader-container">
-            <div class="preloader-ring"></div>
-            <div class="preloader-ring"></div>
-            <div class="preloader-ring"></div>
-            <div class="preloader-arc"></div>
+            <div class="preloader-track"></div>
+            <div class="preloader-fill"></div>
         </div>
     </div>
     
@@ -799,6 +751,11 @@
             url.searchParams.set('project', projectName);
             window.history.pushState({project: projectName}, '', url);
             loadProject(projectName);
+            
+            // Remove focus from navigation elements to ensure arrow keys work
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
         }
         
         // Load available projects from projects.txt
@@ -1194,16 +1151,12 @@
                 img.onload = () => {
                     // Complete the loading animation before hiding
                     if (preloader.classList.contains('visible')) {
-                        const loadingFill = preloader.querySelector('.loading-fill');
-                        if (loadingFill) {
-                            loadingFill.style.transform = 'scaleX(1)';
-                        }
                         setTimeout(() => {
                             img.classList.remove('loading');
                             setTimeout(() => {
                                 preloader.classList.remove('visible', 'loading');
                             }, 200);
-                        }, 300);
+                        }, 800);
                     } else {
                         img.classList.remove('loading');
                     }
@@ -1452,16 +1405,12 @@
                     if (photoElement) {
                         // If this image is currently active, complete loading animation
                         if (photoElement.classList.contains('active') && preloaderElement && preloaderElement.classList.contains('visible')) {
-                            const loadingFill = preloaderElement.querySelector('.loading-fill');
-                            if (loadingFill) {
-                                loadingFill.style.transform = 'scaleX(1)';
-                            }
                             setTimeout(() => {
                                 photoElement.classList.remove('loading');
                                 setTimeout(() => {
                                     preloaderElement.classList.remove('visible', 'loading');
                                 }, 200);
-                            }, 300);
+                            }, 800);
                         } else {
                             photoElement.classList.remove('loading');
                         }
@@ -1514,26 +1463,13 @@
                 // Check if we're in the gallery and have photos
                 if (CONFIG.photos.length <= 1) return;
                 
-                // Prevent arrow key navigation if focus is on navigation elements
-                const activeElement = document.activeElement;
-                if (activeElement && (
-                    activeElement.classList.contains('nav-item') ||
-                    activeElement.classList.contains('site-title') ||
-                    activeElement.classList.contains('hamburger')
-                )) {
-                    return;
-                }
-                
+                // Always handle arrow keys for photo navigation
                 if (e.key === 'ArrowLeft') {
                     e.preventDefault();
                     previousPhoto();
-                    // Remove focus from any navigation element
-                    if (activeElement) activeElement.blur();
                 } else if (e.key === 'ArrowRight') {
                     e.preventDefault();
                     nextPhoto();
-                    // Remove focus from any navigation element
-                    if (activeElement) activeElement.blur();
                 }
             });
         }
