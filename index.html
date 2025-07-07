@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ============================================ -->
+    <!-- CONFIGURATION SECTION - EDIT VALUES BELOW    -->
+    <!-- ============================================ -->
+    
+    <!-- Basic Site Information -->
+    <title>John Doe Photography</title>
+    <meta name="description" content="Professional photography portfolio showcasing artistic work by John Doe">
+    <meta name="author" content="John Doe">
+    
+    <!-- SEO and Social Media -->
+    <meta property="og:title" content="John Doe Photography">
+    <meta property="og:description" content="Professional photography portfolio showcasing artistic work">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://yourdomain.com">
+    <meta property="og:image" content="https://yourdomain.com/home/1-preview.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    
+    <!-- Styling Configuration -->
+    <style>
+        :root {
+            /* EDIT THESE VALUES TO CUSTOMIZE APPEARANCE */
+            --background-color: #ffffff;
+            --text-color: #000000;
+            --font-family: 'Crimson Text', serif; /* Google Font name */
+            --font-size: 18px;
+            --line-height: 1.6;
+            --footer-text: '© 2024 John Doe Photography. All rights reserved.'; /* Edit footer text */
+            --nav-height: 60px;
+            --transition-duration: 0.5s;
+        }
+    </style>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <!-- ============================================ -->
+    <!-- END OF CONFIGURATION - DO NOT EDIT BELOW     -->
+    <!-- ============================================ -->
+    
+    <style>
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: var(--font-size);
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: var(--font-family);
+            color: var(--text-color);
+            background-color: var(--background-color);
+            line-height: var(--line-height);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--nav-height);
+            background-color: var(--background-color);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+        }
+        
+        .nav-container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .nav-item {
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: opacity var(--transition-duration);
+            font-weight: 400;
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            opacity: 0.6;
+        }
+        
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: var(--text-color);
+        }
+        
+        /* Main Content */
+        main {
+            flex: 1;
+            margin-top: var(--nav-height);
+            padding: 40px 20px;
+            max-width: 1200px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* Gallery */
+        .gallery-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto 40px;
+            display: none;
+        }
+        
+        .gallery-container.active {
+            display: block;
+        }
+        
+        .photo-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 66.67%; /* 3:2 aspect ratio */
+            overflow: hidden;
+        }
+        
+        .photo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            transition: opacity var(--transition-duration);
+        }
+        
+        .photo.active {
+            opacity: 1;
+        }
+        
+        /* Navigation Arrows */
+        .nav-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity var(--transition-duration);
+            background: none;
+            border: none;
+            padding: 0;
+            z-index: 10;
+        }
+        
+        .nav-arrow:hover {
+            opacity: 1;
+        }
+        
+        .nav-arrow.prev {
+            left: 20px;
+        }
+        
+        .nav-arrow.next {
+            right: 20px;
+        }
+        
+        .nav-arrow svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--text-color);
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        /* Text Content */
+        .text-content {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .text-content h1, .text-content h2, .text-content h3 {
+            margin: 1.5em 0 0.5em;
+            font-weight: 600;
+        }
+        
+        .text-content h1:first-child,
+        .text-content h2:first-child,
+        .text-content h3:first-child {
+            margin-top: 0;
+        }
+        
+        .text-content p {
+            margin-bottom: 1em;
+        }
+        
+        .text-content a {
+            color: var(--text-color);
+            text-decoration: underline;
+        }
+        
+        .text-content center {
+            display: block;
+            text-align: center;
+        }
+        
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+        
+        footer::before {
+            content: var(--footer-text);
+        }
+        
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            opacity: 0.5;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-arrow {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .nav-arrow.prev {
+                left: 10px;
+            }
+            
+            .nav-arrow.next {
+                right: 10px;
+            }
+            
+            .nav-container {
+                gap: 20px;
+            }
+            
+            main {
+                padding: 20px 10px;
+            }
+        }
+        
+        /* Touch/Swipe Support */
+        .gallery-container {
+            touch-action: pan-y pinch-zoom;
+        }
+        
+        /* Accessibility */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* Focus Styles */
+        *:focus {
+            outline: 2px solid var(--text-color);
+            outline-offset: 2px;
+        }
+        
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav role="navigation" aria-label="Main navigation">
+        <div class="nav-container" id="navigation"></div>
+    </nav>
+    
+    <main role="main" id="main-content">
+        <div class="loading">Loading...</div>
+    </main>
+    
+    <footer role="contentinfo"></footer>
+    
+    <script>
+        // Configuration for folder structure
+        const CONFIG = {
+            projects: [], // Will be populated dynamically
+            currentProject: 'home',
+            currentPhotoIndex: 0,
+            photos: [],
+            touchStartX: null,
+            imageCache: new Map()
+        };
+        
+        // Initialize the application
+        async function init() {
+            try {
+                await loadProjects();
+                setupNavigation();
+                setupKeyboardNavigation();
+                
+                // Load the first project or 'home' if it exists
+                const homeProject = CONFIG.projects.find(p => p.folder === 'home');
+                const firstProject = homeProject || CONFIG.projects[0];
+                
+                if (firstProject) {
+                    loadProject(firstProject.folder);
+                } else {
+                    document.getElementById('main-content').innerHTML = '<p>No projects found. Please check your projects.txt file.</p>';
+                }
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('main-content').innerHTML = '<p>Error loading content. Please ensure files are served from a web server.</p>';
+            }
+        }
+        
+        // Load available projects from projects.txt
+        async function loadProjects() {
+            try {
+                // Fetch the projects.txt file
+                const response = await fetch('projects.txt');
+                if (!response.ok) {
+                    throw new Error('projects.txt not found');
+                }
+                
+                const text = await response.text();
+                // Split by lines and filter empty lines
+                const projectFolders = text.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0 && !line.startsWith('#')); // Allow comments with #
+                
+                // Load each project
+                for (const folder of projectFolders) {
+                    try {
+                        const titleResponse = await fetch(`${folder}/title.txt`);
+                        if (titleResponse.ok) {
+                            const titleText = await titleResponse.text();
+                            const title = titleText.trim().split('\n')[0]; // Get first line
+                            CONFIG.projects.push({ folder: folder, title: title });
+                        } else {
+                            console.warn(`Title not found for project: ${folder}`);
+                            // Use folder name as title if title.txt doesn't exist
+                            CONFIG.projects.push({ 
+                                folder: folder, 
+                                title: folder.charAt(0).toUpperCase() + folder.slice(1) 
+                            });
+                        }
+                    } catch (e) {
+                        console.warn(`Error loading project ${folder}:`, e);
+                    }
+                }
+                
+                // If no projects loaded, add a default
+                if (CONFIG.projects.length === 0) {
+                    console.warn('No valid projects found in projects.txt');
+                }
+                
+            } catch (error) {
+                console.error('Error loading projects.txt:', error);
+                // Fallback: try to load just 'home' if projects.txt doesn't exist
+                try {
+                    const response = await fetch('home/title.txt');
+                    if (response.ok) {
+                        const title = (await response.text()).trim().split('\n')[0];
+                        CONFIG.projects.push({ folder: 'home', title: title });
+                    }
+                } catch (e) {
+                    console.error('No projects.txt and no home folder found');
+                }
+            }
+        }
+        
+        // Setup navigation menu
+        function setupNavigation() {
+            const nav = document.getElementById('navigation');
+            nav.innerHTML = '';
+            
+            CONFIG.projects.forEach(project => {
+                const link = document.createElement('a');
+                link.className = 'nav-item';
+                link.textContent = project.title;
+                link.setAttribute('role', 'button');
+                link.setAttribute('tabindex', '0');
+                link.onclick = () => loadProject(project.folder);
+                link.onkeypress = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        loadProject(project.folder);
+                    }
+                };
+                
+                if (project.folder === CONFIG.currentProject) {
+                    link.classList.add('active');
+                }
+                
+                nav.appendChild(link);
+            });
+        }
+        
+        // Load a specific project
+        async function loadProject(projectName) {
+            CONFIG.currentProject = projectName;
+            CONFIG.currentPhotoIndex = 0;
+            CONFIG.photos = [];
+            
+            // Update active navigation
+            document.querySelectorAll('.nav-item').forEach((item, index) => {
+                item.classList.toggle('active', CONFIG.projects[index]?.folder === projectName);
+            });
+            
+            const mainContent = document.getElementById('main-content');
+            mainContent.innerHTML = '<div class="loading">Loading...</div>';
+            
+            try {
+                // Load text content
+                let textContent = '';
+                try {
+                    const textResponse = await fetch(`${projectName}/text.txt`);
+                    if (textResponse.ok) {
+                        textContent = await textResponse.text();
+                    }
+                } catch (e) {
+                    // No text file
+                }
+                
+                // Load photos
+                await loadPhotos(projectName);
+                
+                // Build content
+                let content = '';
+                
+                if (CONFIG.photos.length > 0) {
+                    content += `
+                        <div class="gallery-container active" id="gallery">
+                            <div class="photo-wrapper" id="photo-wrapper">
+                                ${CONFIG.photos.map((photo, index) => 
+                                    `<img class="photo ${index === 0 ? 'active' : ''}" 
+                                         src="${photo}" 
+                                         alt="Photo ${index + 1}" 
+                                         loading="${index === 0 ? 'eager' : 'lazy'}">`
+                                ).join('')}
+                            </div>
+                            ${CONFIG.photos.length > 1 ? `
+                                <button class="nav-arrow prev" onclick="previousPhoto()" aria-label="Previous photo">
+                                    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                                </button>
+                                <button class="nav-arrow next" onclick="nextPhoto()" aria-label="Next photo">
+                                    <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                </button>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+                
+                if (textContent) {
+                    content += `<div class="text-content">${parseMarkdown(textContent)}</div>`;
+                }
+                
+                mainContent.innerHTML = content || '<p>No content available for this project.</p>';
+                
+                // Setup touch events
+                if (CONFIG.photos.length > 1) {
+                    setupTouchEvents();
+                }
+                
+                // Preload next image
+                if (CONFIG.photos.length > 1) {
+                    preloadImage(CONFIG.photos[1]);
+                }
+                
+            } catch (error) {
+                console.error('Error loading project:', error);
+                mainContent.innerHTML = '<p>Error loading project content.</p>';
+            }
+        }
+        
+        // Load photos from a project folder
+        async function loadPhotos(projectName) {
+            // Try to load numbered photos
+            let photoIndex = 1;
+            let foundPhotos = [];
+            
+            while (photoIndex <= 50) { // Reasonable limit
+                let found = false;
+                const extensions = ['jpg', 'jpeg', 'png', 'webp'];
+                
+                for (const ext of extensions) {
+                    try {
+                        // Try different naming patterns
+                        const patterns = [
+                            `${projectName}/${photoIndex}-photo.${ext}`,
+                            `${projectName}/${photoIndex}.${ext}`,
+                            `${projectName}/${photoIndex}-image.${ext}`
+                        ];
+                        
+                        for (const pattern of patterns) {
+                            const response = await fetch(pattern, { method: 'HEAD' });
+                            if (response.ok) {
+                                foundPhotos.push(pattern);
+                                found = true;
+                                break;
+                            }
+                        }
+                        
+                        if (found) break;
+                    } catch (e) {
+                        // Photo doesn't exist
+                    }
+                }
+                
+                if (!found && photoIndex > 1) {
+                    // If we've found at least one photo and now can't find more, stop
+                    break;
+                }
+                
+                photoIndex++;
+            }
+            
+            CONFIG.photos = foundPhotos;
+        }
+        
+        // Parse simple markdown
+        function parseMarkdown(text) {
+            // Preserve <center> tags
+            text = text.replace(/<center>/gi, '<center>');
+            text = text.replace(/<\/center>/gi, '</center>');
+            
+            // Headers
+            text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+            text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+            text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+            
+            // Bold and italic
+            text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+            
+            // Links
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+            
+            // Line breaks and paragraphs
+            const lines = text.split('\n');
+            let html = '';
+            let inParagraph = false;
+            let inCenter = false;
+            
+            for (let line of lines) {
+                line = line.trim();
+                
+                if (line.startsWith('<center>')) {
+                    if (inParagraph) {
+                        html += '</p>';
+                        inParagraph = false;
+                    }
+                    html += line;
+                    inCenter = true;
+                } else if (line.startsWith('</center>')) {
+                    html += line;
+                    inCenter = false;
+                } else if (line === '') {
+                    if (inParagraph && !inCenter) {
+                        html += '</p>';
+                        inParagraph = false;
+                    }
+                } else if (line.startsWith('<h') || line.startsWith('</h')) {
+                    if (inParagraph) {
+                        html += '</p>';
+                        inParagraph = false;
+                    }
+                    html += line;
+                } else {
+                    if (!inParagraph && !inCenter) {
+                        html += '<p>';
+                        inParagraph = true;
+                    }
+                    html += line + ' ';
+                }
+            }
+            
+            if (inParagraph) {
+                html += '</p>';
+            }
+            
+            return html;
+        }
+        
+        // Gallery navigation functions
+        function showPhoto(index) {
+            const photos = document.querySelectorAll('.photo');
+            photos.forEach((photo, i) => {
+                photo.classList.toggle('active', i === index);
+            });
+            
+            // Preload adjacent images
+            if (index > 0) preloadImage(CONFIG.photos[index - 1]);
+            if (index < CONFIG.photos.length - 1) preloadImage(CONFIG.photos[index + 1]);
+        }
+        
+        function nextPhoto() {
+            CONFIG.currentPhotoIndex = (CONFIG.currentPhotoIndex + 1) % CONFIG.photos.length;
+            showPhoto(CONFIG.currentPhotoIndex);
+        }
+        
+        function previousPhoto() {
+            CONFIG.currentPhotoIndex = (CONFIG.currentPhotoIndex - 1 + CONFIG.photos.length) % CONFIG.photos.length;
+            showPhoto(CONFIG.currentPhotoIndex);
+        }
+        
+        // Preload images for smooth transitions
+        function preloadImage(src) {
+            if (CONFIG.imageCache.has(src)) return;
+            
+            const img = new Image();
+            img.src = src;
+            CONFIG.imageCache.set(src, img);
+        }
+        
+        // Touch event handling
+        function setupTouchEvents() {
+            const gallery = document.getElementById('gallery');
+            if (!gallery) return;
+            
+            gallery.addEventListener('touchstart', handleTouchStart, { passive: true });
+            gallery.addEventListener('touchmove', handleTouchMove, { passive: true });
+            gallery.addEventListener('touchend', handleTouchEnd, { passive: true });
+        }
+        
+        function handleTouchStart(e) {
+            CONFIG.touchStartX = e.touches[0].clientX;
+        }
+        
+        function handleTouchMove(e) {
+            if (!CONFIG.touchStartX) return;
+            
+            const touchEndX = e.touches[0].clientX;
+            const diff = CONFIG.touchStartX - touchEndX;
+            
+            // Add swipe threshold to prevent accidental swipes
+            if (Math.abs(diff) > 50) {
+                if (diff > 0) {
+                    nextPhoto();
+                } else {
+                    previousPhoto();
+                }
+                CONFIG.touchStartX = null;
+            }
+        }
+        
+        function handleTouchEnd() {
+            CONFIG.touchStartX = null;
+        }
+        
+        // Keyboard navigation
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', (e) => {
+                if (CONFIG.photos.length <= 1) return;
+                
+                if (e.key === 'ArrowLeft') {
+                    previousPhoto();
+                } else if (e.key === 'ArrowRight') {
+                    nextPhoto();
+                }
+            });
+        }
+        
+        // Start the application
+        window.addEventListener('DOMContentLoaded', init);
+        
+        // Handle browser back/forward
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.project) {
+                loadProject(e.state.project);
+            }
+        });
+    </script>
+</body>
+</html>
