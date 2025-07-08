@@ -26,47 +26,7 @@
     <link rel="icon" type="image/ico" href="favicon.ico">
     <link rel="shortcut icon" href="favicon.ico?">
     
-    <!-- Critical inline styles for immediate preloader display -->
-    <style>
-        /* Critical preloader styles - inline for immediate display */
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        
-        .page-preloader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-        
-        .preloader-spinner {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #f0f0f0;
-            border-radius: 50%;
-            border-top-color: #d0d0d0;
-            animation: spin 0.8s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-    
-    <!-- Preconnect to Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Main styles -->
+    <!-- Styling Configuration -->
     <style>
         :root {
             /* EDIT THESE VALUES TO CUSTOMIZE APPEARANCE */
@@ -83,28 +43,80 @@
             --external-links-new-tab: true; /* true or false - open external links in new tab */
         }
         
-        /* Fade out animation for preloader */
-        .page-preloader.fade-out {
-            opacity: 0;
-            visibility: hidden;
+        /* Page Preloader - Shows immediately */
+        .page-preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--background-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
             transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
         }
         
-        /* Main content hidden initially and fades in */
-        .main-wrapper {
+        .page-preloader.fade-out {
             opacity: 0;
-            transition: opacity 0.4s ease-out;
+            visibility: hidden;
         }
         
-        .main-wrapper.fade-in {
-            opacity: 1;
+        /* Minimal circular preloader */
+        .preloader-container {
+            position: relative;
+            width: 48px;
+            height: 48px;
         }
         
-        /* Allow scrolling when loaded */
+        /* Background circle */
+        .preloader-track {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid #f0f0f0;
+        }
+        
+        /* Animated fill circle */
+        .preloader-fill {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: #d0d0d0;
+            animation: preloader-spin 0.8s linear infinite;
+        }
+        
+        @keyframes preloader-spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Hide content initially to prevent flash */
+        body {
+            visibility: hidden;
+        }
+        
         body.loaded {
-            overflow: visible;
+            visibility: visible;
         }
-        
+    </style>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
+    
+    <!-- ============================================ -->
+    <!-- END OF CONFIGURATION - DO NOT EDIT BELOW     -->
+    <!-- ============================================ -->
+    
+    <style>
         /* Reset and Base Styles */
         * {
             margin: 0;
@@ -305,6 +317,48 @@
             flex-direction: column-reverse;
         }
         
+        /* Loading Spinner */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            opacity: 0;
+            animation: fade-in 0.3s ease-out 0.3s forwards;
+        }
+        
+        .loading-spinner::after {
+            content: '';
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 4px;
+            border-radius: 50%;
+            border: 2px solid var(--text-color);
+            border-color: var(--text-color) transparent var(--text-color) transparent;
+            animation: loading-spinner 1.2s linear infinite;
+        }
+        
+        @keyframes loading-spinner {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 0.4;
+            }
+        }
+        
         /* Gallery */
         .gallery-container {
             position: relative;
@@ -329,7 +383,7 @@
             overflow: hidden;
         }
         
-        /* Image preloader - appears immediately */
+        /* Minimal circular image preloader with faster spin */
         .image-preloader {
             position: absolute;
             top: 50%;
@@ -343,27 +397,44 @@
             z-index: 2;
         }
         
-        .image-preloader.show {
+        .image-preloader.visible {
             opacity: 1;
         }
         
-        .image-preloader.hide {
-            opacity: 0;
-            transition: opacity 0.3s ease-out;
+        /* Background circle track */
+        .image-preloader::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid #f5f5f5;
         }
         
-        /* Spinner */
-        .spinner {
-            width: 100%;
-            height: 100%;
-            border: 2px solid #f0f0f0;
+        /* Spinning loader */
+        .image-preloader .loading-fill {
+            position: absolute;
+            inset: 0;
             border-radius: 50%;
+            border: 2px solid transparent;
             border-top-color: #d0d0d0;
-            animation: image-spin 0.8s linear infinite;
+            border-right-color: #d0d0d0;
+            animation: image-spin 0.6s linear infinite;
+        }
+        
+        /* Complete state */
+        .image-preloader.complete .loading-fill {
+            animation: none;
+            border-color: #d0d0d0;
+            transition: border-color 0.2s ease-out;
         }
         
         @keyframes image-spin {
-            to { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
         
         .photo {
@@ -374,12 +445,16 @@
             height: 100%;
             object-fit: contain;
             opacity: 0;
-            transition: opacity 0.4s ease-out;
+            transition: opacity calc(var(--transition-duration) * 0.8) ease-out;
             z-index: 1;
         }
         
-        .photo.active {
+        .photo.active:not(.loading) {
             opacity: 1;
+        }
+        
+        .photo.loading {
+            opacity: 0;
         }
         
         /* Navigation Arrows - positioned at page edges on desktop */
@@ -567,44 +642,36 @@
         @media (prefers-reduced-motion: reduce) {
             * {
                 transition-duration: 0.01ms !important;
-                animation-duration: 0.01ms !important;
             }
         }
     </style>
-    
-    <!-- Load Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600&display=swap" rel="stylesheet">
-    
-    <!-- ============================================ -->
-    <!-- END OF CONFIGURATION - DO NOT EDIT BELOW     -->
-    <!-- ============================================ -->
 </head>
 <body>
-    <!-- Page Preloader - Shows immediately -->
+    <!-- Page Preloader -->
     <div class="page-preloader" id="page-preloader">
-        <div class="preloader-spinner"></div>
+        <div class="preloader-container">
+            <div class="preloader-track"></div>
+            <div class="preloader-fill"></div>
+        </div>
     </div>
     
-    <!-- Main wrapper for fade-in effect -->
-    <div class="main-wrapper" id="main-wrapper">
-        <nav role="navigation" aria-label="Main navigation">
-            <div class="nav-container" id="navigation"></div>
-            <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-            <a href="#" class="site-title" id="site-title" aria-label="Home"></a>
-        </nav>
-        
-        <div class="mobile-menu" id="mobile-menu"></div>
-        
-        <main role="main" id="main-content">
-            <!-- Content will be loaded here -->
-        </main>
-        
-        <footer role="contentinfo"></footer>
-    </div>
+    <nav role="navigation" aria-label="Main navigation">
+        <div class="nav-container" id="navigation"></div>
+        <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <a href="#" class="site-title" id="site-title" aria-label="Home"></a>
+    </nav>
+    
+    <div class="mobile-menu" id="mobile-menu"></div>
+    
+    <main role="main" id="main-content">
+        <!-- Content will be loaded here -->
+    </main>
+    
+    <footer role="contentinfo"></footer>
     
     <script>
         // Configuration for folder structure
@@ -617,8 +684,7 @@
             imageCache: new Map(),
             mobileMenuOpen: false,
             galleryElement: null,
-            loadingAbortController: null, // For cancelling ongoing loads
-            contentLoaded: false
+            loadingAbortController: null // For cancelling ongoing loads
         };
         
         // Silent fetch that doesn't log errors
@@ -649,36 +715,33 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 const projectFromUrl = urlParams.get('project') || 'home';
                 
-                // Mark content as loaded and show with fade-in
-                CONFIG.contentLoaded = true;
-                
                 // Load project from URL or default to home
-                await loadProject(projectFromUrl);
+                loadProject(projectFromUrl);
+                
+                // Remove preloader after content is ready
+                setTimeout(() => {
+                    const preloader = document.getElementById('page-preloader');
+                    if (preloader) {
+                        preloader.classList.add('fade-out');
+                        document.body.classList.add('loaded');
+                        setTimeout(() => {
+                            preloader.remove();
+                        }, 300);
+                    }
+                }, 100);
                 
             } catch (error) {
                 console.error('Initialization error:', error);
                 document.getElementById('main-content').innerHTML = '<p>Error loading content. Please ensure files are served from a web server.</p>';
-                removePagePreloader();
-            }
-        }
-        
-        // Remove page preloader with fade out
-        function removePagePreloader() {
-            const preloader = document.getElementById('page-preloader');
-            const mainWrapper = document.getElementById('main-wrapper');
-            
-            if (preloader && mainWrapper) {
-                // Start fade in of main content
-                mainWrapper.classList.add('fade-in');
-                
-                // Fade out preloader
-                preloader.classList.add('fade-out');
-                document.body.classList.add('loaded');
-                
-                // Remove preloader after animation
-                setTimeout(() => {
-                    preloader.remove();
-                }, 300);
+                // Still remove preloader on error
+                const preloader = document.getElementById('page-preloader');
+                if (preloader) {
+                    preloader.classList.add('fade-out');
+                    document.body.classList.add('loaded');
+                    setTimeout(() => {
+                        preloader.remove();
+                    }, 300);
+                }
             }
         }
         
@@ -899,18 +962,13 @@
                 // No text file, that's ok
             }
             
-            // Remove page preloader once text/menu is loaded
-            if (CONFIG.contentLoaded) {
-                removePagePreloader();
-            }
-            
             // Start loading photos immediately without blocking
             if (!signal.aborted) {
                 loadPhotosOptimized(projectName, contentWrapper, textPosition === 'above' && hasText, signal);
             }
         }
         
-        // Optimized photo loading with immediate preloader display
+        // Optimized photo loading with direct image loading
         async function loadPhotosOptimized(projectName, contentWrapper, insertAtEnd, signal) {
             // First try to load photos.txt for custom names
             const photosResponse = await silentFetch(`${projectName}/photos.txt`);
@@ -925,17 +983,17 @@
                     if (signal.aborted) return;
                     
                     const photoPath = `${projectName}/${photoFiles[i]}`;
-                    
-                    // Create gallery on first photo
-                    if (i === 0) {
-                        createGalleryElement(contentWrapper, insertAtEnd);
-                    }
-                    
-                    await addPhotoToGallery(photoPath, i === 0, signal);
-                    
-                    // Add navigation arrows as soon as we have 2 photos
-                    if (CONFIG.photos.length === 2) {
-                        updateNavigationArrows();
+                    const success = await tryLoadImage(photoPath, signal);
+                    if (success) {
+                        if (CONFIG.photos.length === 0) {
+                            createGalleryElement(contentWrapper, insertAtEnd);
+                        }
+                        addPhotoToGallery(photoPath, CONFIG.photos.length === 0);
+                        
+                        // Add navigation arrows as soon as we have 2 photos
+                        if (CONFIG.photos.length === 2) {
+                            updateNavigationArrows();
+                        }
                     }
                 }
             } else {
@@ -944,13 +1002,50 @@
             }
         }
         
+        // Try to load an image using Image object
+        async function tryLoadImage(src, signal) {
+            return new Promise((resolve) => {
+                if (signal && signal.aborted) {
+                    resolve(false);
+                    return;
+                }
+                
+                const img = new Image();
+                
+                const cleanup = () => {
+                    img.onload = null;
+                    img.onerror = null;
+                };
+                
+                img.onload = () => {
+                    cleanup();
+                    resolve(true);
+                };
+                
+                img.onerror = () => {
+                    cleanup();
+                    resolve(false);
+                };
+                
+                // Handle abort
+                if (signal) {
+                    signal.addEventListener('abort', () => {
+                        cleanup();
+                        resolve(false);
+                    });
+                }
+                
+                img.src = src;
+            });
+        }
+        
         // Optimized loading of standard-named photos
         async function loadStandardPhotosOptimized(projectName, contentWrapper, insertAtEnd, signal) {
             const extensions = ['jpg', 'jpeg', 'png', 'webp'];
             let foundAny = false;
             let consecutiveNotFound = 0;
-            const maxConsecutiveNotFound = 3;
-            const maxImages = 50;
+            const maxConsecutiveNotFound = 3; // Reduced from 5
+            const maxImages = 50; // Reduced from 100 to limit search
             
             // Try loading images sequentially
             for (let i = 1; i <= maxImages && consecutiveNotFound < maxConsecutiveNotFound; i++) {
@@ -961,18 +1056,18 @@
                 // Try each extension
                 for (const ext of extensions) {
                     const photoPath = `${projectName}/img/img${i}.${ext}`;
-                    
-                    // Create gallery on first attempt
-                    if (!foundAny) {
-                        createGalleryElement(contentWrapper, insertAtEnd);
-                        foundAny = true;
-                    }
-                    
-                    const success = await addPhotoToGallery(photoPath, CONFIG.photos.length === 0, signal);
+                    const success = await tryLoadImage(photoPath, signal);
                     
                     if (success) {
                         found = true;
                         consecutiveNotFound = 0;
+                        
+                        if (!foundAny) {
+                            createGalleryElement(contentWrapper, insertAtEnd);
+                            foundAny = true;
+                        }
+                        
+                        addPhotoToGallery(photoPath, CONFIG.photos.length === 0);
                         
                         // Add navigation arrows as soon as we have 2 photos
                         if (CONFIG.photos.length === 2) {
@@ -987,12 +1082,6 @@
                     consecutiveNotFound++;
                 }
             }
-            
-            // If no gallery was created (no images found), remove the empty gallery
-            if (!CONFIG.photos.length && CONFIG.galleryElement) {
-                CONFIG.galleryElement.remove();
-                CONFIG.galleryElement = null;
-            }
         }
         
         // Create the gallery element structure
@@ -1000,6 +1089,7 @@
             const galleryHTML = `
                 <div class="gallery-container" id="gallery">
                     <div class="gallery-placeholder">
+                        <div class="loading-spinner"></div>
                         <div class="photo-wrapper" id="photo-wrapper">
                         </div>
                     </div>
@@ -1017,90 +1107,74 @@
             }
         }
         
-        // Add a photo to the existing gallery with immediate preloader
-        async function addPhotoToGallery(photoPath, isFirst, signal) {
-            return new Promise((resolve) => {
-                if (signal && signal.aborted) {
-                    resolve(false);
-                    return;
+        // Add a photo to the existing gallery
+        function addPhotoToGallery(photoPath, isFirst) {
+            CONFIG.photos.push(photoPath);
+            
+            const photoWrapper = document.getElementById('photo-wrapper');
+            if (photoWrapper) {
+                // Remove loading spinner when first photo is added
+                if (isFirst) {
+                    const spinner = document.querySelector('.loading-spinner');
+                    if (spinner) spinner.remove();
                 }
                 
-                const photoWrapper = document.getElementById('photo-wrapper');
-                if (!photoWrapper) {
-                    resolve(false);
-                    return;
-                }
+                // Create container for image and its preloader
+                const imageContainer = document.createElement('div');
+                imageContainer.style.position = 'absolute';
+                imageContainer.style.width = '100%';
+                imageContainer.style.height = '100%';
                 
-                const index = CONFIG.photos.length;
-                
-                // Create preloader first and show it immediately for active image
+                // Create preloader
                 const preloader = document.createElement('div');
                 preloader.className = 'image-preloader';
-                preloader.dataset.index = index;
+                preloader.dataset.index = CONFIG.photos.length - 1;
                 
-                const spinner = document.createElement('div');
-                spinner.className = 'spinner';
-                preloader.appendChild(spinner);
+                // Add loading fill
+                const loadingFill = document.createElement('div');
+                loadingFill.className = 'loading-fill';
+                preloader.appendChild(loadingFill);
                 
-                // Add preloader to DOM
-                photoWrapper.appendChild(preloader);
-                
-                // Show preloader immediately for first image
-                if (isFirst) {
-                    // Use requestAnimationFrame to ensure DOM update
-                    requestAnimationFrame(() => {
-                        preloader.classList.add('show');
-                    });
-                }
-                
-                // Create image element
+                // Create image
                 const img = document.createElement('img');
-                img.className = 'photo';
-                img.dataset.index = index;
-                img.alt = `Photo ${index + 1}`;
+                img.className = isFirst ? 'photo active loading' : 'photo loading';
+                img.dataset.index = CONFIG.photos.length - 1;
+                img.alt = `Photo ${CONFIG.photos.length}`;
                 
-                // Handle successful load
-                img.onload = () => {
-                    CONFIG.photos.push(photoPath);
-                    
-                    // Add image to DOM
-                    photoWrapper.appendChild(img);
-                    
-                    // Activate first image with fade in
-                    if (isFirst) {
-                        setTimeout(() => {
-                            img.classList.add('active');
-                            // Hide preloader after image fades in
-                            setTimeout(() => {
-                                preloader.classList.add('hide');
-                                setTimeout(() => {
-                                    preloader.remove();
-                                }, 300);
-                            }, 400);
-                        }, 50);
-                    }
-                    
-                    resolve(true);
-                };
-                
-                // Handle load error
-                img.onerror = () => {
-                    preloader.remove();
-                    resolve(false);
-                };
-                
-                // Handle abort
-                if (signal) {
-                    signal.addEventListener('abort', () => {
-                        preloader.remove();
-                        resolve(false);
-                    });
+                // Show preloader for active image
+                if (isFirst) {
+                    preloader.classList.add('visible');
                 }
                 
-                // Start loading image
+                // Handle image load
+                img.onload = () => {
+                    // Complete the loading animation
+                    if (preloader.classList.contains('visible')) {
+                        preloader.classList.add('complete');
+                        setTimeout(() => {
+                            img.classList.remove('loading');
+                            setTimeout(() => {
+                                preloader.classList.remove('visible', 'complete');
+                            }, 200);
+                        }, 200);
+                    } else {
+                        img.classList.remove('loading');
+                    }
+                };
+                
+                // Set source to start loading
                 img.src = photoPath;
                 img.loading = isFirst ? 'eager' : 'lazy';
-            });
+                
+                imageContainer.appendChild(preloader);
+                imageContainer.appendChild(img);
+                photoWrapper.appendChild(imageContainer);
+                
+                // Preload next image
+                if (CONFIG.photos.length === 2) {
+                    preloadImage(photoPath);
+                }
+            }
         }
         
         // Update navigation arrows based on number of photos
@@ -1284,51 +1358,24 @@
             const preloaders = document.querySelectorAll('.image-preloader');
             
             photos.forEach((photo, i) => {
-                if (i === index) {
-                    // Show preloader if image not loaded
-                    const img = new Image();
-                    img.onload = () => {
-                        photo.classList.add('active');
-                        
-                        // Find and hide corresponding preloader
-                        const preloader = Array.from(preloaders).find(p => p.dataset.index == i);
-                        if (preloader && preloader.classList.contains('show')) {
-                            setTimeout(() => {
-                                preloader.classList.add('hide');
-                                setTimeout(() => {
-                                    preloader.remove();
-                                }, 300);
-                            }, 400);
-                        }
-                    };
-                    
-                    // Check if image is already loaded
-                    if (photo.complete && photo.naturalHeight !== 0) {
-                        photo.classList.add('active');
-                    } else {
-                        // Show preloader for this image
-                        const preloader = Array.from(preloaders).find(p => p.dataset.index == i);
-                        if (preloader && !preloader.classList.contains('show')) {
-                            requestAnimationFrame(() => {
-                                preloader.classList.add('show');
-                            });
-                        }
-                        img.src = photo.src;
+                const preloader = preloaders[i];
+                const isActive = i === index;
+                
+                if (isActive) {
+                    photo.classList.add('active');
+                    // Show preloader if image is still loading
+                    if (photo.classList.contains('loading')) {
+                        preloader.classList.add('visible');
                     }
                 } else {
                     photo.classList.remove('active');
+                    preloader.classList.remove('visible', 'complete');
                 }
             });
             
             // Preload adjacent images
-            if (index > 0 && photos[index - 1]) {
-                const prevImg = new Image();
-                prevImg.src = photos[index - 1].src;
-            }
-            if (index < photos.length - 1 && photos[index + 1]) {
-                const nextImg = new Image();
-                nextImg.src = photos[index + 1].src;
-            }
+            if (index > 0) preloadImage(CONFIG.photos[index - 1]);
+            if (index < CONFIG.photos.length - 1) preloadImage(CONFIG.photos[index + 1]);
         }
         
         function nextPhoto() {
@@ -1339,6 +1386,40 @@
         function previousPhoto() {
             CONFIG.currentPhotoIndex = (CONFIG.currentPhotoIndex - 1 + CONFIG.photos.length) % CONFIG.photos.length;
             showPhoto(CONFIG.currentPhotoIndex);
+        }
+        
+        // Preload images for smooth transitions
+        function preloadImage(src) {
+            if (CONFIG.imageCache.has(src)) return;
+            
+            const img = new Image();
+            
+            // Find the corresponding photo element
+            const photoIndex = CONFIG.photos.indexOf(src);
+            if (photoIndex !== -1) {
+                img.onload = () => {
+                    const photoElement = document.querySelector(`.photo[data-index="${photoIndex}"]`);
+                    const preloaderElement = document.querySelector(`.image-preloader[data-index="${photoIndex}"]`);
+                    
+                    if (photoElement) {
+                        // If this image is currently active, complete loading animation
+                        if (photoElement.classList.contains('active') && preloaderElement && preloaderElement.classList.contains('visible')) {
+                            preloaderElement.classList.add('complete');
+                            setTimeout(() => {
+                                photoElement.classList.remove('loading');
+                                setTimeout(() => {
+                                    preloaderElement.classList.remove('visible', 'complete');
+                                }, 200);
+                            }, 200);
+                        } else {
+                            photoElement.classList.remove('loading');
+                        }
+                    }
+                };
+            }
+            
+            img.src = src;
+            CONFIG.imageCache.set(src, img);
         }
         
         // Touch event handling
