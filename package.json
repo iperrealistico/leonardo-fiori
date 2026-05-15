@@ -1,0 +1,32 @@
+{
+  "name": "leonardofiori-it",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "images:generate": "node scripts/generate-responsive-images.mjs",
+    "qa:phase9:local": "bash scripts/phase9_local_qa.sh",
+    "qa:phase9:compare": "node scripts/phase9_compare_screenshots.mjs",
+    "qa:phase9:verify": "node scripts/phase9_verify_preview.mjs",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.2.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.6",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
