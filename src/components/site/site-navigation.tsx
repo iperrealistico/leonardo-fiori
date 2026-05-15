@@ -4,6 +4,10 @@ import { NAVIGATION_ROUTE_ORDER } from "@/lib/site/routes";
 const navigationPages = NAVIGATION_ROUTE_ORDER.map((routeKey) =>
   getPublicPageContent(routeKey),
 );
+const filmsNavigationItem = {
+  href: "https://www.lyzardfilm.com",
+  label: "Films",
+} as const;
 
 function getNavigationItemClass(isActive: boolean, mobile = false) {
   return [
@@ -37,6 +41,14 @@ export function SiteNavigation({ activePathname }: SiteNavigationProps) {
             </a>
           );
         })}
+        <a
+          href={filmsNavigationItem.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={getNavigationItemClass(false)}
+        >
+          {filmsNavigationItem.label}
+        </a>
       </nav>
       <details className="site-mobile-nav">
         <summary
@@ -64,6 +76,14 @@ export function SiteNavigation({ activePathname }: SiteNavigationProps) {
               </a>
             );
           })}
+          <a
+            href={filmsNavigationItem.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={getNavigationItemClass(false, true)}
+          >
+            {filmsNavigationItem.label}
+          </a>
         </nav>
       </details>
     </>
