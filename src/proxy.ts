@@ -2,10 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   LEGACY_PROJECT_QUERY_PARAM,
   LEGACY_PROJECT_REDIRECTS,
-  SITE_URL,
 } from "@/lib/site/routes";
-
-const apexHostname = new URL(SITE_URL).hostname;
 
 function getCanonicalPathname(project: string | null) {
   if (!project) {
@@ -25,20 +22,14 @@ export function proxy(request: NextRequest) {
   const canonicalPathname = getCanonicalPathname(
     request.nextUrl.searchParams.get(LEGACY_PROJECT_QUERY_PARAM),
   );
-  const shouldNormalizeHost = request.nextUrl.hostname === `www.${apexHostname}`;
 
-  if (!canonicalPathname && !shouldNormalizeHost) {
+  if (!canonicalPathname) {
     return NextResponse.next();
   }
 
-  const redirectUrl = shouldNormalizeHost
-    ? new URL(request.nextUrl.pathname + request.nextUrl.search, SITE_URL)
-    : request.nextUrl.clone();
-
-  if (canonicalPathname) {
-    redirectUrl.pathname = canonicalPathname;
-    redirectUrl.search = "";
-  }
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.pathname = canonicalPathname;
+  redirectUrl.search = "";
 
   return NextResponse.redirect(redirectUrl, 308);
 }

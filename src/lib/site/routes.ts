@@ -1,5 +1,5 @@
 export const SITE_NAME = "Leonardo Fiori" as const;
-export const SITE_URL = "https://leonardofiori.it" as const;
+export const SITE_URL = "https://www.leonardofiori.it" as const;
 
 export const PUBLIC_ROUTE_ORDER = [
   "home",
