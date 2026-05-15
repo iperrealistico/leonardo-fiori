@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import {
+  LEGACY_PATH_REDIRECTS,
   LEGACY_PROJECT_QUERY_PARAM,
   LEGACY_PROJECT_REDIRECTS,
 } from "@/lib/site/routes";
@@ -19,6 +20,19 @@ function getCanonicalPathname(project: string | null) {
 }
 
 export function proxy(request: NextRequest) {
+  const legacyPathRedirect =
+    LEGACY_PATH_REDIRECTS[
+      request.nextUrl.pathname as keyof typeof LEGACY_PATH_REDIRECTS
+    ];
+
+  if (legacyPathRedirect) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = legacyPathRedirect;
+    redirectUrl.search = "";
+
+    return NextResponse.redirect(redirectUrl, 308);
+  }
+
   const canonicalPathname = getCanonicalPathname(
     request.nextUrl.searchParams.get(LEGACY_PROJECT_QUERY_PARAM),
   );
